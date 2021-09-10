@@ -1,0 +1,86 @@
+{
+    "manifestVersion": 1,
+    "id": "block-duplicate-work-items",
+    "publisher": "soft-cor",
+    "version": "0.0.20",
+    "name": "Block Duplicate Work Items",
+    "description": "Block Duplicate Work Items",
+    "public": true,
+    "galleryFlags": [
+        "Preview"
+    ],
+    "categories": ["Azure Boards"],
+    "content": {
+        "details": {
+            "path": "overview.md"
+        },
+        "license": {
+            "path": "LICENSE"
+        }
+    },
+    "links": {
+        "support": {
+            "uri": "https://blog.soft-cor.com"
+        }
+    },
+    "repository": {
+        "type": "git",
+        "uri": "https://github.com/keyoke/AzureBoardsBlockDuplicates"
+      },
+    "badges": [
+        {
+            "href": "https://dev.azure.com/softcores/AzureBoardsBlockDuplicates/_build?definitionId=8&_a=summary",
+            "uri": "https://dev.azure.com/softcores/AzureBoardsBlockDuplicates/_apis/build/status/keyoke.AzureBoardsBlockDuplicates?branchName=main",
+            "description": "Azure Pipeline for AzureBoardsBlockDuplicates"
+        }
+      ],
+    "tags": [
+        "duplicates",
+        "block",
+        "de-duplication"
+    ],
+    "icons": {
+        "default": "logo.png"
+      },
+    "scopes": ["vso.work"],
+    "demands": [
+        "api-version/3.0"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "contributions": [
+        {  
+            "id": "block-duplicate-observer",
+            "type": "ms.vss-work-web.work-item-notifications",
+            "description": "",
+            "targets": [
+                "ms.vss-work-web.work-item-form"
+            ],
+            "properties": {
+                "uri": "block-duplicate-observer.html"
+            }
+        }
+    ],
+    "files": [
+        {
+            "path": "dist",
+            "packagePath": "scripts",
+            "addressable": true
+        },
+        {
+            "path": "images",
+            "addressable": true
+        },
+        {
+            "path": "logo.png",
+            "addressable": true
+        },
+        {
+            "path": "block-duplicate-observer.html",
+            "addressable": true
+        }
+    ]
+}
