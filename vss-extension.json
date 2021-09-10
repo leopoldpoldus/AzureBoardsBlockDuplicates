@@ -5,12 +5,15 @@
     "version": "0.0.20",
     "name": "Block Duplicate Work Items",
     "description": "Block Duplicate Work Items",
-    "public": false,
+    "public": true,
     "galleryFlags": [
         "Preview"
     ],
     "categories": ["Azure Boards"],
     "content": {
+        "details": {
+            "path": "overview.md"
+        },
         "license": {
             "path": "LICENSE"
         }
@@ -26,7 +29,7 @@
       },
     "badges": [
         {
-            "href": "https://dev.azure.com/softcores/AzureBoardsBlockDuplicates/_build?definitionId=&_a=summary",
+            "href": "https://dev.azure.com/softcores/AzureBoardsBlockDuplicates/_build?definitionId=8&_a=summary",
             "uri": "https://dev.azure.com/softcores/AzureBoardsBlockDuplicates/_apis/build/status/keyoke.AzureBoardsBlockDuplicates?branchName=main",
             "description": "Azure Pipeline for AzureBoardsBlockDuplicates"
         }
