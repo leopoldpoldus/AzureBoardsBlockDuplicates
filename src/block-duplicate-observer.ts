@@ -130,6 +130,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
                 // console.dir(workitems);
 
                 let duplicate: boolean = false;
+                
                 // Enumerate returned WI's and check for similarity of X 
                 workitems.value.every((workitem: any) => {
                     // Ignore the current WI if editing an existing one
@@ -145,14 +146,18 @@ class duplicateObserver implements IWorkItemNotificationListener  {
                             return false;
                         }
                         else {
-                            // then check the the description
-                            var description_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemDescription, striptags(workitem.fields['System.Description']));
+                            // do we have a description?
+                            if (currentWorkItemDescription)
+                            {
+                                // then check the the description
+                                var description_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemDescription, striptags(workitem.fields['System.Description']));
 
-                            // Did we hit the threshold for Similarity Index
-                            if (description_similarity >= this._similarityIndex) {
-                                // return result and stop processing items
-                                duplicate = true;
-                                return false;
+                                // Did we hit the threshold for Similarity Index
+                                if (description_similarity >= this._similarityIndex) {
+                                    // return result and stop processing items
+                                    duplicate = true;
+                                    return false;
+                                }
                             }
                         }
                     }
