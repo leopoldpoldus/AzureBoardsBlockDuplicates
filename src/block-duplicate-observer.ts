@@ -155,6 +155,7 @@ class duplicateObserver {
     public async onFieldChanged(args: any) {
         console.log(`WorkItemForm.onFieldChanged().`);
 
+        // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
         this._timeout = setTimeout(() => {
             this.validateWorkItem();
