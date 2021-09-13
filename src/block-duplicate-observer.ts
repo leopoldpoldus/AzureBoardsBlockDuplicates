@@ -177,6 +177,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     // Called when the active work item is modified
     public async onFieldChanged(args: any) {
         console.log(`WorkItemForm.onFieldChanged().`);
+        console.dir(args);
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
