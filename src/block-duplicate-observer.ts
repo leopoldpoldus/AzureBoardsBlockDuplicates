@@ -31,7 +31,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         const client: WorkItemTrackingRestClient = getClient(WorkItemTrackingRestClient);
 
         // We need a few fields from the current workitem to perform our similairty analysis
-        const id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
+        let id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
         // Strip html tags from description if any
         description = striptags(description);
@@ -42,6 +42,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         }
         else{
             console.log(`** New WorkItem **`);
+            id = "-1";
         }
 
         console.log(`System.Title is '${title}'.`);
@@ -136,6 +137,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
                     // Ignore the current WI if editing an existing one
                     if (currentWorkItemId &&
                         workitem.id !== currentWorkItemId) {
+
                         // First check the titles
                         var title_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemTitle, workitem.fields['System.Title']);
 
@@ -192,16 +194,26 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         console.log(JSON.stringify(args));
         const changedFields = args.changedFields;
 
-        const title: string = changedFields["System.Title"] as string;
-        const description: string = changedFields["System.Description"] as string;
+        let title: string = changedFields["System.Title"] as string;
+        let description: string = changedFields["System.Description"] as string;
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
         console.log(`Setting timer for triggering validation.`);
-        this._timeout = setTimeout(() => {
+        this._timeout = setTimeout(async () => {
             console.log(`Triggering validation.`);
+
+            if(!title)
+            {
+                title = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
+            }
+            if(!description)
+            {
+                description = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
+            }
+
             this.validateWorkItem(title, description);
-        }, 3000);
+        }, 2000);
     }
 
     public async changedFields(args: any) {
@@ -213,7 +225,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         console.log(`WorkItemForm.onLoaded().`);
 
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
-        const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
+        const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
 
         this.validateWorkItem( title, description);
     }
@@ -228,7 +240,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         console.log(`WorkItemForm.onRefreshed().`);
 
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
-        const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
+        const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
 
         this.validateWorkItem( title, description);
     }
