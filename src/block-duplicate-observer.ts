@@ -198,7 +198,9 @@ SDK.ready().then(async () => {
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
     const observer: duplicateObserver = new duplicateObserver(workItemFormService, locationService, projectService);
 
-    await SDK.register(SDK.getContributionId(), async () => {
+    // SDK.getContributionId()
+    
+    await SDK.register('block-duplicate-observer', async () => {
         // Get the Work Item Form Service
         return observer;
     });
