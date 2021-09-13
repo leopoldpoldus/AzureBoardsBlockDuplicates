@@ -12,43 +12,45 @@ class duplicateObserver {
     _timeout: NodeJS.Timeout;
 
     constructor(workItemFormService: IWorkItemFormService, locationService: ILocationService, projectService: IProjectPageService) {
-        console.log("duplicateObserver.ctor");
         this._workItemFormService = workItemFormService;
         this._locationService = locationService;
         this._projectService = projectService;
     }
 
+    // main entrypoint for validation logic 
     public async validateWorkItem() {
-
+        // Get the Orgs Base url for WIT Rest Calls
         const hostBaseUrl = await this._locationService.getResourceAreaLocation(
             '5264459e-e5e0-4bd8-b118-0985e68a4ec5' // WIT
         );
 
+        // Get The current ADO Project we need the project name later
         const project = await this._projectService.getProject();
+
+        // Get The WIT rest client
         const client: WorkItemTrackingRestClient = getClient(WorkItemTrackingRestClient);
+
+        // We need a few fields from the current workitem to perform our similairty analysis
         const id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
-
-
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
 
-        // Search for existing WI's which are not closed and are of the same time of the current WI
-        // TODO : Add Paging
+        // Search for existing WI's which are not closed and are of the same type of the current WI
         const wiqlResult: WorkItemQueryResult = await client.queryByWiql({
             query: `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`
         }, project.name);
 
-        // Batches of 200 wotk items
+        // Process the returned WI's in batches of 200
         let promises: Array<Promise<boolean>> = [], i : number, j : number, chunk_items : Array<WorkItemReference>, chunk : number = 200;
         for (i = 0, j = wiqlResult.workItems.length; i < j; i += chunk) {
             // Get The current batch
             chunk_items = wiqlResult.workItems.slice(i, i + chunk);
             // Setup our batch request payload we dont want everything only certain fields
-            promises.push(this.validateChunk(hostBaseUrl, project.name, id, title, description, chunk_items));
+            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, title, description, chunk_items));
         }
 
-        // Wait for any one of our promises to return boolean result then continue
+        // Wait for any one of our promises to return bool(true) result then continue
         const duplicate: boolean = await this.getfirstResolvedPromise(promises);
 
         // Check if we have any other invalid fields
@@ -66,7 +68,7 @@ class duplicateObserver {
             return;
         }
 
-        // did we find a duplicate?
+        // did we find any duplicates?
         if (duplicate) {
             console.log(`Duplicate Work item.`);
             this._workItemFormService.setError(`Duplicate Work item.`);
@@ -77,7 +79,9 @@ class duplicateObserver {
         }
     }
 
-    private async validateChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
+    // perform similarity logic on a batch of WI's
+    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
+        // Prepare our request body for this batch, only request title and description
         const requestBody = {
             "ids": workItemsChunk.map(workitem => { return workitem.id; }),
             "$expand": "None",
@@ -91,9 +95,10 @@ class duplicateObserver {
         // Get a valid access token for our batch request
         const accessToken = await SDK.getAccessToken();
 
+        // return a promise
         return new Promise<boolean>(async (resolve, reject) => {
             try {
-                // Get our WorkItem data
+                // Get our WorkItem data using the batch api
                 const response = await fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
                     method: 'POST',
                     headers: {
@@ -110,27 +115,32 @@ class duplicateObserver {
                 let duplicate: boolean = false;
                 // Enumerate returned WI's and check for similarity of X 
                 workitems.value.every((workitem: any) => {
-                    // ignore the current WI if editing existing one
+                    // Ignore the current WI if editing an existing one
                     if (currentWorkItemId &&
                         workitem.id !== currentWorkItemId) {
+                        // First check the titles
                         var title_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemTitle, workitem.fields['System.Title']);
 
-                        // Lets compare title first
+                        // Did we hit the threshold for Similarity Index
                         if (title_similarity >= this._similarityIndex) {
+                            // return result and stop processing items
                             duplicate = true;
                             return false;
                         }
                         else {
-                            // then compare the description
+                            // then check the the description
                             var description_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemDescription, striptags(workitem.fields['System.Description']));
 
+                            // Did we hit the threshold for Similarity Index
                             if (description_similarity >= this._similarityIndex) {
+                                // return result and stop processing items
                                 duplicate = true;
                                 return false;
                             }
                         }
                     }
 
+                    // continue processing items as we have not found duplicate yet
                     return true;
                 });
 
@@ -138,12 +148,14 @@ class duplicateObserver {
                 resolve(duplicate);
             }
             catch(error){
+                // unhandled error
                 reject(false);
                 console.error(error);
             }
         });
     }
 
+    // function to get first promise which resolves to true result
     private async getfirstResolvedPromise(promises: Array<Promise<boolean>>) : Promise<boolean>{
         const newPromises : Promise<boolean>[] = promises.map(p => new Promise<boolean>(
             (resolve, reject) => p.then(v => v && resolve(true), reject)
@@ -193,13 +205,16 @@ class duplicateObserver {
 
 SDK.init(<SDK.IExtensionInitOptions>{ explicitNotifyLoaded: true });
 SDK.ready().then(async () => {
+    // Get The ADO Services which we will need later
     const locationService: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
     const projectService: IProjectPageService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
     const observer: duplicateObserver = new duplicateObserver(workItemFormService, locationService, projectService);
 
     // SDK.getContributionId()
-    
+    // soft-cor.block-duplicate-work-items.block-duplicate-observer or ???
+    // block-duplicate-observer
+
     await SDK.register('block-duplicate-observer', async () => {
         // Get the Work Item Form Service
         return observer;
