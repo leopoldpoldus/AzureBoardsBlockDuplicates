@@ -5,6 +5,7 @@ import * as stringSimilarity from "string-similarity";
 import * as striptags from "striptags";
 
 class duplicateObserver {
+    _similarityIndex : number = 0.8;
     _workItemFormService: IWorkItemFormService;
     _locationService: ILocationService;
     _projectService: IProjectPageService;
@@ -115,7 +116,7 @@ class duplicateObserver {
                         var title_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemTitle, workitem.fields['System.Title']);
 
                         // Lets compare title first
-                        if (title_similarity >= 0.8) {
+                        if (title_similarity >= this._similarityIndex) {
                             duplicate = true;
                             return false;
                         }
@@ -123,7 +124,7 @@ class duplicateObserver {
                             // then compare the description
                             var description_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemDescription, striptags(workitem.fields['System.Description']));
 
-                            if (description_similarity >= 0.8) {
+                            if (description_similarity >= this._similarityIndex) {
                                 duplicate = true;
                                 return false;
                             }
