@@ -36,10 +36,20 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
 
+        console.log(`System.Id is '${id}'.`);
+        console.log(`System.Title is '${title}'.`);
+        console.log(`System.Description is '${description}'.`);
+        console.log(`System.WorkItemType is '${type}'.`);
+
+        let wiqlQuery : string = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
+        console.log(`WIQL Query is '${wiqlQuery}'.`);
+
         // Search for existing WI's which are not closed and are of the same type of the current WI
         const wiqlResult: WorkItemQueryResult = await client.queryByWiql({
-            query: `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`
+            query: wiqlQuery
         }, project.name);
+
+        console.log(`WorkItem Count is '${wiqlResult.workItems.length}'.`);
 
         // Process the returned WI's in batches of 200
         let promises: Array<Promise<boolean>> = [], i : number, j : number, chunk_items : Array<WorkItemReference>, chunk : number = 200;
@@ -167,6 +177,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     // Called when the active work item is modified
     public async onFieldChanged(args: any) {
         console.log(`WorkItemForm.onFieldChanged().`);
+        console.dir(args);
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
@@ -177,20 +188,14 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         }, 3000);
     }
 
+    public async changedFields(args: any) {
+        console.log(`WorkItemForm.changedFields().`);
+    }
+
     // Called when a new work item is being loaded in the UI
     public async onLoaded(args: any) {
         console.log(`WorkItemForm.onLoaded().`);
         this.validateWorkItem();
-    }
-
-    // Called when the active work item is being unloaded in the UI
-    public async onUnloaded(args: any) {
-        console.log(`WorkItemForm.onUnloaded().`);
-    }
-
-    // Called after the work item has been saved
-    public async onSaved(args: any) {
-        console.log(`WorkItemForm.onSaved().`);
     }
 
     // Called when the work item is reset to its unmodified state (undo)
@@ -202,6 +207,16 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     public async onRefreshed(args: any) {
         console.log(`WorkItemForm.onRefreshed().`);
         this.validateWorkItem();
+    }
+
+    // Called after the work item has been saved
+    public async onSaved(args: any) {
+        console.log(`WorkItemForm.onSaved().`);
+    }
+
+    // Called when the active work item is being unloaded in the UI
+    public async onUnloaded(args: any) {
+        console.log(`WorkItemForm.onUnloaded().`);
     }
 }
 
