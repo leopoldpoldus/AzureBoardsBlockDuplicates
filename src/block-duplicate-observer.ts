@@ -170,9 +170,11 @@ class duplicateObserver {
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
+        console.log(`Setting timer for triggering validation.`);
         this._timeout = setTimeout(() => {
+            console.log(`Triggering validation.`);
             this.validateWorkItem();
-        }, 1000);
+        }, 3000);
     }
 
     // Called when a new work item is being loaded in the UI
@@ -203,16 +205,22 @@ class duplicateObserver {
     }
 }
 
-SDK.init(<SDK.IExtensionInitOptions>{ explicitNotifyLoaded: true });
-SDK.ready().then(async () => {
+const main = async () =>{
+    await SDK.init(<SDK.IExtensionInitOptions>{ 
+        explicitNotifyLoaded: true 
+    });
+
+    // wait until we are ready
+    await SDK.ready();
+
+    // soft-cor.block-duplicate-work-items.block-duplicate-observer or block-duplicate-observer ??
+    const contributionId : string = SDK.getContributionId();
     // Get The ADO Services which we will need later
     const locationService: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
     const projectService: IProjectPageService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
     const observer: duplicateObserver = new duplicateObserver(workItemFormService, locationService, projectService);
 
-    // soft-cor.block-duplicate-work-items.block-duplicate-observer or block-duplicate-observer ??
-    let contributionId : string = SDK.getContributionId();
     console.log(contributionId);
     
     SDK.register(contributionId, () => {
@@ -220,5 +228,9 @@ SDK.ready().then(async () => {
         return observer;
     });
 
+    // notify we are loaded
     await SDK.notifyLoadSucceeded();
-});
+};
+
+// execute our entrypoint
+main().catch((error) => { console.error(error); });
