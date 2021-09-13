@@ -1,10 +1,10 @@
 import * as SDK from "azure-devops-extension-sdk";
 import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService } from "azure-devops-extension-api";
-import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds } from "azure-devops-extension-api/WorkItemTracking";
+import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds, IWorkItemNotificationListener } from "azure-devops-extension-api/WorkItemTracking";
 import * as stringSimilarity from "string-similarity";
 import * as striptags from "striptags";
 
-class duplicateObserver {
+class duplicateObserver implements IWorkItemNotificationListener  {
     _similarityIndex : number = 0.8;
     _workItemFormService: IWorkItemFormService;
     _locationService: ILocationService;
@@ -223,6 +223,7 @@ const main = async () =>{
 
     console.log(contributionId);
     
+    // Register our contribution
     SDK.register(contributionId, () => {
         // Get the Work Item Form Service
         return observer;
