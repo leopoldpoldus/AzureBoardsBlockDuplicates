@@ -215,12 +215,10 @@ SDK.ready().then(async () => {
     // soft-cor.block-duplicate-work-items.block-duplicate-observer or ???
     // block-duplicate-observer
 
-    await SDK.register('block-duplicate-observer', async () => {
+    SDK.register('block-duplicate-observer', () => {
         // Get the Work Item Form Service
         return observer;
     });
-
-    // preload work items?
 
     await SDK.notifyLoadSucceeded();
 });
