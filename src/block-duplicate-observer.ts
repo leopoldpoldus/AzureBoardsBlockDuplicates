@@ -205,7 +205,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     }
 }
 
-const main = async () =>{
+export async function main(): Promise<void> {
     await SDK.init(<SDK.IExtensionInitOptions>{ 
         explicitNotifyLoaded: true 
     });
@@ -219,14 +219,12 @@ const main = async () =>{
     const locationService: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
     const projectService: IProjectPageService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
-    const observer: duplicateObserver = new duplicateObserver(workItemFormService, locationService, projectService);
-
-    console.log(contributionId);
-    
+   
     // Register our contribution
+    console.log(contributionId);
     SDK.register(contributionId, () => {
-        // Get the Work Item Form Service
-        return observer;
+        // Get the observer
+        return new duplicateObserver(workItemFormService, locationService, projectService);
     });
 
     // notify we are loaded
