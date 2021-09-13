@@ -18,7 +18,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     }
 
     // main entrypoint for validation logic 
-    public async validateWorkItem() {
+    public async validateWorkItem(title: string, description: string) {
         // Get the Orgs Base url for WIT Rest Calls
         const hostBaseUrl = await this._locationService.getResourceAreaLocation(
             '5264459e-e5e0-4bd8-b118-0985e68a4ec5' // WIT
@@ -32,11 +32,18 @@ class duplicateObserver implements IWorkItemNotificationListener  {
 
         // We need a few fields from the current workitem to perform our similairty analysis
         const id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
-        const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
-        const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
+        // Strip html tags from description if any
+        description = striptags(description);
 
-        console.log(`System.Id is '${id}'.`);
+        if(id)
+        {
+            console.log(`System.Id is '${id}'.`);
+        }
+        else{
+            console.log(`** New WorkItem **`);
+        }
+        
         console.log(`System.Title is '${title}'.`);
         console.log(`System.Description is '${description}'.`);
         console.log(`System.WorkItemType is '${type}'.`);
@@ -177,14 +184,17 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     // Called when the active work item is modified
     public async onFieldChanged(args: any) {
         console.log(`WorkItemForm.onFieldChanged().`);
-        console.dir(args);
+        console.log(JSON.stringify(args));
+
+        const title: string = args["System.Title"] as string;
+        const description: string = args["System.Description"] as string;
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
         console.log(`Setting timer for triggering validation.`);
         this._timeout = setTimeout(() => {
             console.log(`Triggering validation.`);
-            this.validateWorkItem();
+            this.validateWorkItem(title, description);
         }, 3000);
     }
 
@@ -195,7 +205,11 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     // Called when a new work item is being loaded in the UI
     public async onLoaded(args: any) {
         console.log(`WorkItemForm.onLoaded().`);
-        this.validateWorkItem();
+
+        const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
+        const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
+
+        this.validateWorkItem( title, description);
     }
 
     // Called when the work item is reset to its unmodified state (undo)
@@ -206,7 +220,11 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     // Called when the work item has been refreshed from the server
     public async onRefreshed(args: any) {
         console.log(`WorkItemForm.onRefreshed().`);
-        this.validateWorkItem();
+
+        const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
+        const description: string = striptags(await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string);
+
+        this.validateWorkItem( title, description);
     }
 
     // Called after the work item has been saved
