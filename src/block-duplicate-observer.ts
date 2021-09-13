@@ -211,11 +211,11 @@ SDK.ready().then(async () => {
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
     const observer: duplicateObserver = new duplicateObserver(workItemFormService, locationService, projectService);
 
-    // SDK.getContributionId()
-    // soft-cor.block-duplicate-work-items.block-duplicate-observer or ???
-    // block-duplicate-observer
-
-    SDK.register('block-duplicate-observer', () => {
+    // soft-cor.block-duplicate-work-items.block-duplicate-observer or block-duplicate-observer ??
+    let contributionId : string = SDK.getContributionId();
+    console.log(contributionId);
+    
+    SDK.register(contributionId, () => {
         // Get the Work Item Form Service
         return observer;
     });
