@@ -137,8 +137,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 let workitems: any = await response.json();
                 let filtered_workitems = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
+                console.log(JSON.stringify(filtered_workitems));
+
                 if (currentWorkItemTitle) {
                     var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(currentWorkItemTitle, filtered_workitems.map((workitem: any) => workitem.fields['System.Title']));
+                    console.log(JSON.stringify(title_matches));
 
                     if (title_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
@@ -148,6 +151,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 if (!duplicate &&
                     currentWorkItemDescription) {
                     var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(striptags(currentWorkItemDescription), filtered_workitems.map((workitem: any) => striptags(workitem.fields['System.Description'])));
+                    console.log(JSON.stringify(description_matches));
 
                     if (description_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
