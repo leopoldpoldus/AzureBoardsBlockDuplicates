@@ -4,8 +4,8 @@ import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemT
 import * as stringSimilarity from "string-similarity";
 import * as striptags from "striptags";
 
-class duplicateObserver implements IWorkItemNotificationListener  {
-    _similarityIndex : number = 0.8;
+class duplicateObserver implements IWorkItemNotificationListener {
+    _similarityIndex: number = 0.8;
     _workItemFormService: IWorkItemFormService;
     _locationService: ILocationService;
     _projectService: IProjectPageService;
@@ -19,6 +19,14 @@ class duplicateObserver implements IWorkItemNotificationListener  {
 
     // main entrypoint for validation logic 
     public async validateWorkItem(title: string, description: string) {
+
+        // Make sure we have either title or description else return
+        if (!title &&
+            !description) {
+            console.log(`Title and/or Description are needed to perform similarity checks.`);
+            return;
+        }
+
         // Get the Orgs Base url for WIT Rest Calls
         const hostBaseUrl = await this._locationService.getResourceAreaLocation(
             '5264459e-e5e0-4bd8-b118-0985e68a4ec5' // WIT
@@ -33,14 +41,11 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         // We need a few fields from the current workitem to perform our similairty analysis
         let id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
-        // Strip html tags from description if any
-        description = striptags(description);
 
-        if(id)
-        {
+        if (id) {
             console.log(`System.Id is '${id}'.`);
         }
-        else{
+        else {
             console.log(`** New WorkItem **`);
             id = "-1";
         }
@@ -49,7 +54,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         console.log(`System.Description is '${description}'.`);
         console.log(`System.WorkItemType is '${type}'.`);
 
-        let wiqlQuery : string = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
+        let wiqlQuery: string = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
         console.log(`WIQL Query is '${wiqlQuery}'.`);
 
         // Search for existing WI's which are not closed and are of the same type of the current WI
@@ -60,7 +65,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         console.log(`WorkItem Count is '${wiqlResult.workItems.length}'.`);
 
         // Process the returned WI's in batches of 200
-        let promises: Array<Promise<boolean>> = [], i : number, j : number, chunk_items : Array<WorkItemReference>, chunk : number = 200;
+        let promises: Array<Promise<boolean>> = [], i: number, j: number, chunk_items: Array<WorkItemReference>, chunk: number = 200;
         for (i = 0, j = wiqlResult.workItems.length; i < j; i += chunk) {
             // Get The current batch
             chunk_items = wiqlResult.workItems.slice(i, i + chunk);
@@ -126,52 +131,32 @@ class duplicateObserver implements IWorkItemNotificationListener  {
                     body: JSON.stringify(requestBody)
                 })
 
+                let duplicate: boolean = false;
+
                 // Get The JSON response
                 let workitems: any = await response.json();
-                // console.dir(workitems);
+                let filtered_workitems = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
-                let duplicate: boolean = false;
-                
-                // Enumerate returned WI's and check for similarity of X 
-                workitems.value.every((workitem: any) => {
-                    // Ignore the current WI if editing an existing one
-                    if (currentWorkItemId &&
-                        workitem.id !== currentWorkItemId) {
+                if (currentWorkItemTitle) {
+                    var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(currentWorkItemTitle, filtered_workitems.map((workitem: any) => workitem.fields['System.Title']));
 
-                        // First check the titles
-                        var title_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemTitle, workitem.fields['System.Title']);
-
-                        // Did we hit the threshold for Similarity Index
-                        if (title_similarity >= this._similarityIndex) {
-                            // return result and stop processing items
-                            duplicate = true;
-                            return false;
-                        }
-                        else {
-                            // do we have a description?
-                            if (currentWorkItemDescription)
-                            {
-                                // then check the the description
-                                var description_similarity: number = stringSimilarity.compareTwoStrings(currentWorkItemDescription, striptags(workitem.fields['System.Description']));
-
-                                // Did we hit the threshold for Similarity Index
-                                if (description_similarity >= this._similarityIndex) {
-                                    // return result and stop processing items
-                                    duplicate = true;
-                                    return false;
-                                }
-                            }
-                        }
+                    if (title_matches.bestMatch.rating >= this._similarityIndex) {
+                        duplicate = true;
                     }
+                }
 
-                    // continue processing items as we have not found duplicate yet
-                    return true;
-                });
+                if (!duplicate &&
+                    currentWorkItemDescription) {
+                    var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(striptags(currentWorkItemDescription), filtered_workitems.map((workitem: any) => striptags(workitem.fields['System.Description'])));
 
-                // Resolve our promise
+                    if (description_matches.bestMatch.rating >= this._similarityIndex) {
+                        duplicate = true;
+                    }
+                }
+
                 resolve(duplicate);
             }
-            catch(error){
+            catch (error) {
                 // unhandled error
                 reject(false);
                 console.error(error);
@@ -180,12 +165,12 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     }
 
     // function to get first promise which resolves to true result
-    private async getfirstResolvedPromise(promises: Array<Promise<boolean>>) : Promise<boolean>{
-        const newPromises : Promise<boolean>[] = promises.map(p => new Promise<boolean>(
+    private async getfirstResolvedPromise(promises: Array<Promise<boolean>>): Promise<boolean> {
+        const newPromises: Promise<boolean>[] = promises.map(p => new Promise<boolean>(
             (resolve, reject) => p.then(v => v && resolve(true), reject)
-          ));
-          newPromises.push(Promise.all(promises).then(() => false));
-          return Promise.race(newPromises);
+        ));
+        newPromises.push(Promise.all(promises).then(() => false));
+        return Promise.race(newPromises);
     }
 
     // Called when the active work item is modified
@@ -197,23 +182,16 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         let title: string = changedFields["System.Title"] as string;
         let description: string = changedFields["System.Description"] as string;
 
-        // when changes are made wait a bit before triggering the validation
-        if (this._timeout) clearTimeout(this._timeout);
-        console.log(`Setting timer for triggering validation.`);
-        this._timeout = setTimeout(async () => {
-            console.log(`Triggering validation.`);
-
-            if(!title)
-            {
-                title = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
-            }
-            if(!description)
-            {
-                description = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
-            }
-
-            this.validateWorkItem(title, description);
-        }, 2000);
+        if (title ||
+            description) {
+            // when changes are made wait a bit before triggering the validation
+            if (this._timeout) clearTimeout(this._timeout);
+            console.log(`Setting timer for triggering validation.`);
+            this._timeout = setTimeout(async () => {
+                console.log(`Triggering validation.`);
+                this.validateWorkItem(title, description);
+            }, 2000);
+        }
     }
 
     public async changedFields(args: any) {
@@ -227,7 +205,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
 
-        this.validateWorkItem( title, description);
+        this.validateWorkItem(title, description);
     }
 
     // Called when the work item is reset to its unmodified state (undo)
@@ -242,7 +220,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
 
-        this.validateWorkItem( title, description);
+        this.validateWorkItem(title, description);
     }
 
     // Called after the work item has been saved
@@ -257,20 +235,20 @@ class duplicateObserver implements IWorkItemNotificationListener  {
 }
 
 export async function main(): Promise<void> {
-    await SDK.init(<SDK.IExtensionInitOptions>{ 
-        explicitNotifyLoaded: true 
+    await SDK.init(<SDK.IExtensionInitOptions>{
+        explicitNotifyLoaded: true
     });
 
     // wait until we are ready
     await SDK.ready();
 
     // soft-cor.block-duplicate-work-items.block-duplicate-observer or block-duplicate-observer ??
-    const contributionId : string = SDK.getContributionId();
+    const contributionId: string = SDK.getContributionId();
     // Get The ADO Services which we will need later
     const locationService: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
     const projectService: IProjectPageService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
     const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
-   
+
     // Register our contribution
     console.log(contributionId);
     SDK.register(contributionId, () => {
