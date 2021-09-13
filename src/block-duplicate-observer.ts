@@ -43,7 +43,7 @@ class duplicateObserver implements IWorkItemNotificationListener  {
         else{
             console.log(`** New WorkItem **`);
         }
-        
+
         console.log(`System.Title is '${title}'.`);
         console.log(`System.Description is '${description}'.`);
         console.log(`System.WorkItemType is '${type}'.`);
@@ -185,9 +185,10 @@ class duplicateObserver implements IWorkItemNotificationListener  {
     public async onFieldChanged(args: any) {
         console.log(`WorkItemForm.onFieldChanged().`);
         console.log(JSON.stringify(args));
+        const changedFields = args.changedFields;
 
-        const title: string = args["System.Title"] as string;
-        const description: string = args["System.Description"] as string;
+        const title: string = changedFields["System.Title"] as string;
+        const description: string = changedFields["System.Description"] as string;
 
         // when changes are made wait a bit before triggering the validation
         if (this._timeout) clearTimeout(this._timeout);
