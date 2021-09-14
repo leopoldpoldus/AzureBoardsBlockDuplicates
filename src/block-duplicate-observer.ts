@@ -102,6 +102,13 @@ class duplicateObserver implements IWorkItemNotificationListener {
         }
     }
 
+    private normalizeString(orignial_text : string) : string {
+        if(orignial_text)
+            return striptags(orignial_text).trim().toLowerCase();
+        else
+            return "";
+    }
+
     // perform similarity logic on a batch of WI's
     private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
         // Prepare our request body for this batch, only request title and description
@@ -122,7 +129,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
         return new Promise<boolean>(async (resolve, reject) => {
             try {
                 // Get our WorkItem data using the batch api
-                const response = await fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
+                const response : Response = await fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
@@ -137,11 +144,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 let workitems: any = await response.json();
                 let filtered_workitems = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
-                console.log(JSON.stringify(filtered_workitems));
+                // console.log(JSON.stringify(filtered_workitems));
 
                 if (currentWorkItemTitle) {
-                    var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(currentWorkItemTitle, filtered_workitems.map((workitem: any) => workitem.fields['System.Title']));
-                    console.log(JSON.stringify(title_matches));
+                    var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemTitle), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Title'])));
+                    // console.log(JSON.stringify(title_matches));
 
                     if (title_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
@@ -150,8 +157,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
                 if (!duplicate &&
                     currentWorkItemDescription) {
-                    var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(striptags(currentWorkItemDescription), filtered_workitems.map((workitem: any) => striptags(workitem.fields['System.Description'])));
-                    console.log(JSON.stringify(description_matches));
+                    var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemDescription), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Description'])));
+                    // console.log(JSON.stringify(description_matches));
 
                     if (description_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
