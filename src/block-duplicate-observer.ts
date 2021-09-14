@@ -146,11 +146,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 let workitems: any = await response.json();
                 let filtered_workitems = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
-                this._logger.debug(JSON.stringify(filtered_workitems));
+                this._logger.debug("filtered_workitems", filtered_workitems);
 
                 if (currentWorkItemTitle) {
                     var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemTitle), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Title'])));
-                    this._logger.debug(JSON.stringify(title_matches));
+                    this._logger.debug("title_matches", title_matches);
 
                     if (title_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
@@ -160,7 +160,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 if (!duplicate &&
                     currentWorkItemDescription) {
                     var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemDescription), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Description'])));
-                    this._logger.debug(JSON.stringify(description_matches));
+                    this._logger.debug("description_matches", description_matches);
 
                     if (description_matches.bestMatch.rating >= this._similarityIndex) {
                         duplicate = true;
@@ -189,7 +189,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     // Called when the active work item is modified
     public async onFieldChanged(args: any) {
         this._logger.info(`WorkItemForm.onFieldChanged().`);
-        this._logger.debug(JSON.stringify(args));
+        this._logger.debug("args", args);
         const changedFields = args.changedFields;
 
         let title: string = changedFields["System.Title"] as string;
