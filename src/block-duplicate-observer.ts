@@ -11,7 +11,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     _locationService: ILocationService;
     _projectService: IProjectPageService;
     _timeout: NodeJS.Timeout;
-    _logger: Logger = new Logger(LogLevel.All);
+    _logger: Logger = new Logger(LogLevel.Info);
 
     constructor(workItemFormService: IWorkItemFormService, locationService: ILocationService, projectService: IProjectPageService) {
         this._workItemFormService = workItemFormService;
