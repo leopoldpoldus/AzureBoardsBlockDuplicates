@@ -167,7 +167,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 if (!duplicate &&
                     currentWorkItemDescription) {
                     filtered_workitems.every((workitem: any) => {
-                        var description_match: number = dice(currentWorkItemDescription, workitem.fields['System.Description']);
+                        var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
                         this._logger.debug("description_match", description_match);
 
                         if (description_match >= this._similarityIndex) {
