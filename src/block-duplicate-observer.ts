@@ -1,7 +1,7 @@
 import * as SDK from "azure-devops-extension-sdk";
 import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService } from "azure-devops-extension-api";
 import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds, IWorkItemNotificationListener } from "azure-devops-extension-api/WorkItemTracking";
-import * as stringSimilarity from "string-similarity";
+import * as dice from "fast-dice-coefficient";
 import * as striptags from "striptags";
 import Logger, { LogLevel } from "./logger";
 
@@ -144,27 +144,39 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
                 // Get The JSON response
                 let workitems: any = await response.json();
-                let filtered_workitems = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
+                let filtered_workitems: Array<any> = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
                 this._logger.debug("filtered_workitems", filtered_workitems);
 
+                // first check for match title is fastest as shortest text
                 if (currentWorkItemTitle) {
-                    var title_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemTitle), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Title'])));
-                    this._logger.debug("title_matches", title_matches);
+                    filtered_workitems.every((workitem: any) => {
+                        var title_match: number = dice(this.normalizeString(currentWorkItemTitle), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Title'])));
+                        this._logger.debug("title_match", title_match);
 
-                    if (title_matches.bestMatch.rating >= this._similarityIndex) {
-                        duplicate = true;
-                    }
+                        if (title_match >= this._similarityIndex) {
+                            this._logger.info(`Matched title ${title_match} on work item id ${workitem.id}.`);
+                            duplicate = true;
+                            return false;
+                        }
+                        return true;
+                    });
                 }
 
+                // we didnt find a matching title then lets look at the descriptions
                 if (!duplicate &&
                     currentWorkItemDescription) {
-                    var description_matches: stringSimilarity.BestMatch = stringSimilarity.findBestMatch(this.normalizeString(currentWorkItemDescription), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Description'])));
-                    this._logger.debug("description_matches", description_matches);
+                    filtered_workitems.every((workitem: any) => {
+                        var description_match: number = dice(this.normalizeString(currentWorkItemDescription), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Description'])));
+                        this._logger.debug("description_match", description_match);
 
-                    if (description_matches.bestMatch.rating >= this._similarityIndex) {
-                        duplicate = true;
-                    }
+                        if (description_match >= this._similarityIndex) {
+                            this._logger.info(`Matched description ${description_match} on work item id ${workitem.id}.`);
+                            duplicate = true;
+                            return false;
+                        }
+                        return true;
+                    });
                 }
 
                 resolve(duplicate);
@@ -188,7 +200,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Called when the active work item is modified
     public async onFieldChanged(args: any) {
-        this._logger.info(`WorkItemForm.onFieldChanged().`);
+        this._logger.debug(`WorkItemForm.onFieldChanged().`);
         this._logger.debug("args", args);
         const changedFields = args.changedFields;
 
@@ -208,12 +220,12 @@ class duplicateObserver implements IWorkItemNotificationListener {
     }
 
     public async changedFields(args: any) {
-        this._logger.info(`WorkItemForm.changedFields().`);
+        this._logger.debug(`WorkItemForm.changedFields().`);
     }
 
     // Called when a new work item is being loaded in the UI
     public async onLoaded(args: any) {
-        this._logger.info(`WorkItemForm.onLoaded().`);
+        this._logger.debug(`WorkItemForm.onLoaded().`);
 
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
@@ -226,12 +238,12 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Called when the work item is reset to its unmodified state (undo)
     public async onReset(args: any) {
-        this._logger.info(`WorkItemForm.onReset().`);
+        this._logger.debug(`WorkItemForm.onReset().`);
     }
 
     // Called when the work item has been refreshed from the server
     public async onRefreshed(args: any) {
-        this._logger.info(`WorkItemForm.onRefreshed().`);
+        this._logger.debug(`WorkItemForm.onRefreshed().`);
 
         const title: string = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         const description: string = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
@@ -244,12 +256,12 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Called after the work item has been saved
     public async onSaved(args: any) {
-        this._logger.info(`WorkItemForm.onSaved().`);
+        this._logger.debug(`WorkItemForm.onSaved().`);
     }
 
     // Called when the active work item is being unloaded in the UI
     public async onUnloaded(args: any) {
-        this._logger.info(`WorkItemForm.onUnloaded().`);
+        this._logger.debug(`WorkItemForm.onUnloaded().`);
     }
 }
 
