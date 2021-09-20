@@ -104,9 +104,14 @@ class duplicateObserver implements IWorkItemNotificationListener {
         }
     }
 
+    // Remove things we dont want to compare on and ensure comparison based on lower case strings
     private normalizeString(orignial_text: string): string {
         if (orignial_text)
-            return striptags(orignial_text).trim().toLowerCase();
+            return striptags(orignial_text)
+                    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") // !"#$%&'()*+,-./:;?@[\]^_`{|}~ 
+                    .replace(/\s{2,}/g," ")
+                    .trim()
+                    .toLowerCase();
         else
             return "";
     }
