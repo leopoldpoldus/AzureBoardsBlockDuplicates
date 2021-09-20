@@ -162,7 +162,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                         this._logger.debug("title_match", title_match);
 
                         if (title_match >= this._similarityIndex) {
-                            this._logger.info(`Matched title ${title_match} on work item id ${workitem.id}.`);
+                            this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
                             duplicate = true;
                             return false;
                         }
@@ -179,7 +179,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                         this._logger.debug("description_match", description_match);
 
                         if (description_match >= this._similarityIndex) {
-                            this._logger.info(`Matched description ${description_match} on work item id ${workitem.id}.`);
+                            this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
                             duplicate = true;
                             return false;
                         }
