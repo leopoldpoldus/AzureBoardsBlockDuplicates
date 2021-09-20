@@ -12,7 +12,6 @@
   "dependencies": {
     "azure-devops-extension-api": "^1.158.0",
     "azure-devops-extension-sdk": "^2.0.11",
-    "dice-coefficient": "^2.0.0",
     "fast-dice-coefficient": "^1.0.3",
     "striptags": "^3.2.0"
   },
