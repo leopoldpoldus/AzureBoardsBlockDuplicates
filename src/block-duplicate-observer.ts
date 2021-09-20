@@ -3,6 +3,8 @@ import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocati
 import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds, IWorkItemNotificationListener } from "azure-devops-extension-api/WorkItemTracking";
 import * as dice from "fast-dice-coefficient";
 import * as striptags from "striptags";
+import * as originalFetch from 'isomorphic-fetch';
+import * as fetchBuilder from 'fetch-retry';
 import Logger, { LogLevel } from "./logger";
 
 class duplicateObserver implements IWorkItemNotificationListener {
@@ -12,6 +14,22 @@ class duplicateObserver implements IWorkItemNotificationListener {
     _projectService: IProjectPageService;
     _timeout: NodeJS.Timeout;
     _logger: Logger = new Logger(LogLevel.Info);
+    _statusCodes = [503, 504];
+    _options = {
+        retries: 3,
+        retryDelay: (attempt: any, error: any, response: any) => {
+            return Math.pow(2, attempt) * 1000;
+        },
+        retryOn: (attempt: any, error: any, response: any) => {
+            // retry on any network error, or specific status codes
+            if (error !== null || this._statusCodes.includes(response.status)) {
+                this._logger.info(`retrying, attempt number ${attempt + 1}`);
+                return true;
+            }
+        }
+    };
+
+    _fetch: any = fetchBuilder(originalFetch, this._options);
 
     constructor(workItemFormService: IWorkItemFormService, locationService: ILocationService, projectService: IProjectPageService) {
         this._workItemFormService = workItemFormService;
@@ -109,10 +127,10 @@ class duplicateObserver implements IWorkItemNotificationListener {
         if (orignial_text &&
             orignial_text !== "")
             return striptags(orignial_text)
-                    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") // !"#$%&'()*+,-./:;?@[\]^_`{|}~ 
-                    .replace(/\s{2,}/g," ")
-                    .trim()
-                    .toLowerCase();
+                .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // !"#$%&'()*+,-./:;?@[\]^_`{|}~ 
+                .replace(/\s{2,}/g, " ")
+                .trim()
+                .toLowerCase();
         else
             return "";
     }
@@ -137,57 +155,70 @@ class duplicateObserver implements IWorkItemNotificationListener {
         return new Promise<boolean>(async (resolve, reject) => {
             try {
                 // Get our WorkItem data using the batch api
-                const response: Response = await fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
+                let response: Response = await this._fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(requestBody)
-                })
+                }).then(async (response: Response) => {
+                    let duplicate: boolean = false;
 
-                let duplicate: boolean = false;
+                    // ensure we have a "success" result
+                    if (response.status >= 200 && response.status < 300) {
+                        // Get The JSON response
+                        let workitems: any = await response.json();
+                        let filtered_workitems: Array<any> = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
 
-                // Get The JSON response
-                let workitems: any = await response.json();
-                let filtered_workitems: Array<any> = workitems.value.filter((workitem: any) => workitem.id !== currentWorkItemId);
+                        this._logger.debug("filtered_workitems", filtered_workitems);
 
-                this._logger.debug("filtered_workitems", filtered_workitems);
+                        // first check for match title is fastest as shortest text
+                        if (currentWorkItemTitle &&
+                            currentWorkItemTitle !== "") {
+                            filtered_workitems.every((workitem: any) => {
+                                var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
+                                this._logger.debug("title_match", title_match);
 
-                // first check for match title is fastest as shortest text
-                if (currentWorkItemTitle &&
-                    currentWorkItemTitle !== "") {
-                    filtered_workitems.every((workitem: any) => {
-                        var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
-                        this._logger.debug("title_match", title_match);
-
-                        if (title_match >= this._similarityIndex) {
-                            this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
-                            duplicate = true;
-                            return false;
+                                if (title_match >= this._similarityIndex) {
+                                    this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
+                                    duplicate = true;
+                                    return false;
+                                }
+                                return true;
+                            });
                         }
-                        return true;
-                    });
-                }
 
-                // we didnt find a matching title then lets look at the descriptions
-                if (!duplicate &&
-                    currentWorkItemDescription &&
-                    currentWorkItemDescription !== "") {
-                    filtered_workitems.every((workitem: any) => {
-                        var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
-                        this._logger.debug("description_match", description_match);
+                        // we didnt find a matching title then lets look at the descriptions
+                        if (!duplicate &&
+                            currentWorkItemDescription &&
+                            currentWorkItemDescription !== "") {
+                            filtered_workitems.every((workitem: any) => {
+                                var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
+                                this._logger.debug("description_match", description_match);
 
-                        if (description_match >= this._similarityIndex) {
-                            this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
-                            duplicate = true;
-                            return false;
+                                if (description_match >= this._similarityIndex) {
+                                    this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
+                                    duplicate = true;
+                                    return false;
+                                }
+                                return true;
+                            });
                         }
-                        return true;
-                    });
-                }
+                    }
+                    else {
+                        this._logger.info(`Failed to retrieve work item chunk.`);
+                        this._logger.debug(`response`, response);
+                    }
 
-                resolve(duplicate);
+                    // resolve the promise
+                    resolve(duplicate);
+
+                }).catch((error: Error) => {
+                    // Save this failure for later
+                    this._logger.error(`Unhandled Error.`, error);
+                    reject(error);
+                });
             }
             catch (error) {
                 // unhandled error
