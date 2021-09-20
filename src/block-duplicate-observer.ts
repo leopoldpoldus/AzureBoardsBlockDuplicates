@@ -72,7 +72,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
             // Get The current batch
             chunk_items = wiqlResult.workItems.slice(i, i + chunk);
             // Setup our batch request payload we dont want everything only certain fields
-            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, title, description, chunk_items));
+            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, this.normalizeString(title), this.normalizeString(description), chunk_items));
         }
 
         // Wait for any one of our promises to return bool(true) result then continue
@@ -151,7 +151,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 // first check for match title is fastest as shortest text
                 if (currentWorkItemTitle) {
                     filtered_workitems.every((workitem: any) => {
-                        var title_match: number = dice(this.normalizeString(currentWorkItemTitle), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Title'])));
+                        var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
                         this._logger.debug("title_match", title_match);
 
                         if (title_match >= this._similarityIndex) {
@@ -167,7 +167,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 if (!duplicate &&
                     currentWorkItemDescription) {
                     filtered_workitems.every((workitem: any) => {
-                        var description_match: number = dice(this.normalizeString(currentWorkItemDescription), filtered_workitems.map((workitem: any) => this.normalizeString(workitem.fields['System.Description'])));
+                        var description_match: number = dice(currentWorkItemDescription, workitem.fields['System.Description']);
                         this._logger.debug("description_match", description_match);
 
                         if (description_match >= this._similarityIndex) {
