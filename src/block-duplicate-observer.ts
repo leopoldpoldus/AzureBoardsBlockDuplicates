@@ -106,7 +106,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Remove things we dont want to compare on and ensure comparison based on lower case strings
     private normalizeString(orignial_text: string): string {
-        if (orignial_text)
+        if (orignial_text &&
+            orignial_text !== "")
             return striptags(orignial_text)
                     .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") // !"#$%&'()*+,-./:;?@[\]^_`{|}~ 
                     .replace(/\s{2,}/g," ")
@@ -154,7 +155,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 this._logger.debug("filtered_workitems", filtered_workitems);
 
                 // first check for match title is fastest as shortest text
-                if (currentWorkItemTitle) {
+                if (currentWorkItemTitle &&
+                    currentWorkItemTitle !== "") {
                     filtered_workitems.every((workitem: any) => {
                         var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
                         this._logger.debug("title_match", title_match);
@@ -170,7 +172,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
                 // we didnt find a matching title then lets look at the descriptions
                 if (!duplicate &&
-                    currentWorkItemDescription) {
+                    currentWorkItemDescription &&
+                    currentWorkItemDescription !== "") {
                     filtered_workitems.every((workitem: any) => {
                         var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
                         this._logger.debug("description_match", description_match);
