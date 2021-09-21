@@ -14,9 +14,15 @@ Before performing our similarity check we normalize our text:
 2. Removing the following punctuation **!"#$%&'()\*+,-./:;?@[\\]^_`{|}~**.
 
 Similarity is established based on an index 0.0 - 1.0 :
+
 - 0.0 being least similar
 - 1.0 being most similar.
 
-By default this extension leverages a similarity index of 0.8, in the future threshold will be configurable.
+By default this extension leverages the following thresholds for similarity index:
+
+- Title - 0.95
+- Description - 0.85 
+
+In the future these thresholds will be configurable.
 
 This extension can be leveraged in combination with the [Find similar workitems](https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems) extension to establish which work items are similar to the current item.
