@@ -42,6 +42,11 @@
     "icons": {
         "default": "logo.png"
       },
+      "screenshots": [
+        {
+          "path": "images/duplicate-sample.png"
+        }
+      ],
     "scopes": ["vso.work"],
     "demands": [
         "api-version/3.0"
