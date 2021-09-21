@@ -1,7 +1,7 @@
 # Block Duplicate Work Items
 This extension provides the ability to block duplicate work item creation, similarity between work items is currently determined based on [Dice's Coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
 
-Checks are automatically performed on work items of the *same type* and on the following fields :
+Checks are automatically performed on work items of the ***same type*** and on the following fields :
 
 - Title
 - Description
