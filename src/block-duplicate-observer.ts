@@ -1,5 +1,5 @@
 import * as SDK from "azure-devops-extension-sdk";
-import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService } from "azure-devops-extension-api";
+import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService, IExtensionDataService } from "azure-devops-extension-api";
 import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds, IWorkItemNotificationListener } from "azure-devops-extension-api/WorkItemTracking";
 import * as dice from "fast-dice-coefficient";
 import * as striptags from "striptags";
@@ -8,11 +8,10 @@ import * as fetchBuilder from 'fetch-retry';
 import Logger, { LogLevel } from "./logger";
 
 class duplicateObserver implements IWorkItemNotificationListener {
-    _titleSimilarityIndex: number = 0.95;
-    _descriptionSimilarityIndex: number = 0.85;
     _workItemFormService: IWorkItemFormService;
     _locationService: ILocationService;
     _projectService: IProjectPageService;
+    _dataService: IExtensionDataService;
     _timeout: NodeJS.Timeout;
     _logger: Logger = new Logger(LogLevel.Info);
     _statusCodes = [503, 504];
@@ -32,10 +31,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     _fetch: any = fetchBuilder(originalFetch, this._options);
 
-    constructor(workItemFormService: IWorkItemFormService, locationService: ILocationService, projectService: IProjectPageService) {
+    constructor(workItemFormService: IWorkItemFormService, locationService: ILocationService, projectService: IProjectPageService, dataService: IExtensionDataService) {
         this._workItemFormService = workItemFormService;
         this._locationService = locationService;
         this._projectService = projectService;
+        this._dataService = dataService;
     }
 
     // main entrypoint for validation logic 
@@ -63,6 +63,9 @@ class duplicateObserver implements IWorkItemNotificationListener {
         let id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
 
+        const titleSimilarityIndex : number = await this.getTitleSimilarityIndex();
+        const descriptionSimilarityIndex : number = await this.getDescriptionSimilarityIndex();
+
         if (id) {
             this._logger.debug(`System.Id is '${id}'.`);
         }
@@ -74,6 +77,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
         this._logger.debug(`System.Title is '${title}'.`);
         this._logger.debug(`System.Description is '${description}'.`);
         this._logger.debug(`System.WorkItemType is '${type}'.`);
+        this._logger.debug(`titleSimilarityIndex is '${titleSimilarityIndex}'.`);
+        this._logger.debug(`descriptionSimilarityIndex is '${descriptionSimilarityIndex}'.`);
 
         let wiqlQuery: string = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
         this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
@@ -91,7 +96,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
             // Get The current batch
             chunk_items = wiqlResult.workItems.slice(i, i + chunk);
             // Setup our batch request payload we dont want everything only certain fields
-            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, this.normalizeString(title), this.normalizeString(description), chunk_items));
+            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, this.normalizeString(title), this.normalizeString(description), titleSimilarityIndex, descriptionSimilarityIndex, chunk_items));
         }
 
         // Wait for any one of our promises to return bool(true) result then continue
@@ -136,8 +141,32 @@ class duplicateObserver implements IWorkItemNotificationListener {
             return "";
     }
 
+    private async getTitleSimilarityIndex() : Promise<number> {
+        const dataManager = await this._dataService.getExtensionDataManager(
+            SDK.getExtensionContext().id,
+            await SDK.getAccessToken()
+          );
+          let titleSimilarityIndex: number = await dataManager.getValue('TitleSimilarityIndex', {
+            scopeType: 'Default',
+          });
+
+          return titleSimilarityIndex ?? 0.95;
+    }
+
+    private async getDescriptionSimilarityIndex() : Promise<number> {
+        const dataManager = await this._dataService.getExtensionDataManager(
+            SDK.getExtensionContext().id,
+            await SDK.getAccessToken()
+          );
+          let descriptionSimilarityIndex: number = await dataManager.getValue('DescriptionSimilarityIndex', {
+            scopeType: 'Default',
+          });
+
+          return descriptionSimilarityIndex ?? 0.85;
+    }
+
     // perform similarity logic on a batch of WI's
-    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
+    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, titleSimilarityIndex : number, descriptionSimilarityIndex : number, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
         // Prepare our request body for this batch, only request title and description
         const requestBody = {
             "ids": workItemsChunk.map(workitem => { return workitem.id; }),
@@ -155,6 +184,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
         // return a promise
         return new Promise<boolean>(async (resolve, reject) => {
             try {
+
                 // Get our WorkItem data using the batch api
                 let response: Response = await this._fetch(`${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`, {
                     method: 'POST',
@@ -181,7 +211,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                                 var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
                                 this._logger.debug("title_match", title_match);
 
-                                if (title_match >= this._titleSimilarityIndex) {
+                                if (title_match >= titleSimilarityIndex) {
                                     this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
                                     duplicate = true;
                                     return false;
@@ -198,7 +228,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                                 var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
                                 this._logger.debug("description_match", description_match);
 
-                                if (description_match >= this._descriptionSimilarityIndex) {
+                                if (description_match >= descriptionSimilarityIndex) {
                                     this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
                                     duplicate = true;
                                     return false;
@@ -316,9 +346,10 @@ export async function main(): Promise<void> {
         const locationService: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
         const projectService: IProjectPageService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         const workItemFormService: IWorkItemFormService = await SDK.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
+        const dataService: IExtensionDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
 
         // Get the observer
-        return new duplicateObserver(workItemFormService, locationService, projectService);
+        return new duplicateObserver(workItemFormService, locationService, projectService, dataService);
     });
 };
 
