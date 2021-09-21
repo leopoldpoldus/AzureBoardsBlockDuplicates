@@ -141,6 +141,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
             return "";
     }
 
+    // Get stored index or return default
     private async getTitleSimilarityIndex() : Promise<number> {
         const dataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
@@ -153,6 +154,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
           return titleSimilarityIndex ?? 0.95;
     }
 
+    // Get stored index or return default
     private async getDescriptionSimilarityIndex() : Promise<number> {
         const dataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
