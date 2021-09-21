@@ -41,6 +41,18 @@ class duplicateObserver implements IWorkItemNotificationListener {
     // main entrypoint for validation logic 
     public async validateWorkItem(title: string, description: string) {
 
+        // if we werent supplied a title lets get the current title
+        if(!title)
+        {
+            title = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
+        }
+
+        // if we werent supplied a description lets get the current title
+        if(!description)
+        {
+            description = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
+        }
+
         // Make sure we have either title or description else return
         if (!title &&
             !description) {
