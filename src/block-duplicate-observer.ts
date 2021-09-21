@@ -1,5 +1,5 @@
 import * as SDK from "azure-devops-extension-sdk";
-import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService, IExtensionDataService } from "azure-devops-extension-api";
+import { CommonServiceIds, getClient, IProjectInfo, IProjectPageService, ILocationService, IExtensionDataService, IExtensionDataManager } from "azure-devops-extension-api";
 import { IWorkItemFormService, WorkItemQueryResult, WorkItemReference, WorkItemTrackingRestClient, WorkItemTrackingServiceIds, IWorkItemNotificationListener } from "azure-devops-extension-api/WorkItemTracking";
 import * as dice from "fast-dice-coefficient";
 import * as striptags from "striptags";
@@ -143,11 +143,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Get stored index or return default
     private async getTitleSimilarityIndex() : Promise<number> {
-        const dataManager = await this._dataService.getExtensionDataManager(
+        const dataManager : IExtensionDataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
             await SDK.getAccessToken()
           );
-          let titleSimilarityIndex: number = await dataManager.getValue('TitleSimilarityIndex', {
+          let titleSimilarityIndex: number = await dataManager.getValue<number>('TitleSimilarityIndex', {
             scopeType: 'Default',
           });
 
@@ -156,11 +156,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // Get stored index or return default
     private async getDescriptionSimilarityIndex() : Promise<number> {
-        const dataManager = await this._dataService.getExtensionDataManager(
+        const dataManager : IExtensionDataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
             await SDK.getAccessToken()
           );
-          let descriptionSimilarityIndex: number = await dataManager.getValue('DescriptionSimilarityIndex', {
+          let descriptionSimilarityIndex: number = await dataManager.getValue<number>('DescriptionSimilarityIndex', {
             scopeType: 'Default',
           });
 
