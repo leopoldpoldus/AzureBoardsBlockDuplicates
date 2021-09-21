@@ -8,7 +8,8 @@ import * as fetchBuilder from 'fetch-retry';
 import Logger, { LogLevel } from "./logger";
 
 class duplicateObserver implements IWorkItemNotificationListener {
-    _similarityIndex: number = 0.8;
+    _titleSimilarityIndex: number = 0.95;
+    _descriptionSimilarityIndex: number = 0.85;
     _workItemFormService: IWorkItemFormService;
     _locationService: ILocationService;
     _projectService: IProjectPageService;
@@ -180,7 +181,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                                 var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
                                 this._logger.debug("title_match", title_match);
 
-                                if (title_match >= this._similarityIndex) {
+                                if (title_match >= this._titleSimilarityIndex) {
                                     this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
                                     duplicate = true;
                                     return false;
@@ -197,7 +198,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
                                 var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
                                 this._logger.debug("description_match", description_match);
 
-                                if (description_match >= this._similarityIndex) {
+                                if (description_match >= this._descriptionSimilarityIndex) {
                                     this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
                                     duplicate = true;
                                     return false;
