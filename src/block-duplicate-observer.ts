@@ -129,8 +129,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
         // did we find any duplicates?
         if (duplicate) {
-            this._logger.info(`A duplicate work item exists with similar title and/or description.`);
-            this._workItemFormService.setError(`A duplicate work item exists with similar title and/or description.`);
+            this._logger.info(`A duplicate work item of the same type exists with similar title and/or description.`);
+            this._workItemFormService.setError(`A duplicate work item of the same type exists with similar title and/or description.`);
         }
         else {
             this._logger.info(`Not a Duplicate Work item.`);
