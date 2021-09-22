@@ -42,14 +42,12 @@ class duplicateObserver implements IWorkItemNotificationListener {
     public async validateWorkItem(title: string, description: string) {
 
         // if we werent supplied a title lets get the current title
-        if(!title)
-        {
+        if (!title) {
             title = await this._workItemFormService.getFieldValue("System.Title", { returnOriginalValue: false }) as string;
         }
 
         // if we werent supplied a description lets get the current title
-        if(!description)
-        {
+        if (!description) {
             description = await this._workItemFormService.getFieldValue("System.Description", { returnOriginalValue: false }) as string;
         }
 
@@ -75,8 +73,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
         let id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
 
-        const titleSimilarityIndex : number = await this.getTitleSimilarityIndex();
-        const descriptionSimilarityIndex : number = await this.getDescriptionSimilarityIndex();
+        const titleSimilarityIndex: number = await this.getTitleSimilarityIndex();
+        const descriptionSimilarityIndex: number = await this.getDescriptionSimilarityIndex();
 
         if (id) {
             this._logger.debug(`System.Id is '${id}'.`);
@@ -131,8 +129,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
         // did we find any duplicates?
         if (duplicate) {
-            this._logger.info(`Duplicate Title and/or Description for Work item.`);
-            this._workItemFormService.setError(`Duplicate Title and/or Description for Work item.`);
+            this._logger.info(`A duplicate work item exists with similar title and/or description.`);
+            this._workItemFormService.setError(`A duplicate work item exists with similar title and/or description.`);
         }
         else {
             this._logger.info(`Not a Duplicate Work item.`);
@@ -154,33 +152,51 @@ class duplicateObserver implements IWorkItemNotificationListener {
     }
 
     // Get stored index or return default
-    private async getTitleSimilarityIndex() : Promise<number> {
-        const dataManager : IExtensionDataManager = await this._dataService.getExtensionDataManager(
+    private async getTitleSimilarityIndex(): Promise<number> {
+        const dataManager: IExtensionDataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
             await SDK.getAccessToken()
-          );
-          let titleSimilarityIndex: number = await dataManager.getValue<number>('TitleSimilarityIndex', {
-            scopeType: 'Default',
-          });
+        );
 
-          return titleSimilarityIndex ?? 0.95;
+        // Get current value for setting
+        let titleSimilarityIndex: number = await dataManager.getValue<number>('TitleSimilarityIndex', {
+            scopeType: 'Default',
+        });
+
+        // Set our defaults if the key does not already exist
+        if (!titleSimilarityIndex) {
+            titleSimilarityIndex = await dataManager.setValue<number>('TitleSimilarityIndex', 0.95, {
+                scopeType: 'Default',
+            });
+        }
+
+        return titleSimilarityIndex;
     }
 
     // Get stored index or return default
-    private async getDescriptionSimilarityIndex() : Promise<number> {
-        const dataManager : IExtensionDataManager = await this._dataService.getExtensionDataManager(
+    private async getDescriptionSimilarityIndex(): Promise<number> {
+        const dataManager: IExtensionDataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
             await SDK.getAccessToken()
-          );
-          let descriptionSimilarityIndex: number = await dataManager.getValue<number>('DescriptionSimilarityIndex', {
-            scopeType: 'Default',
-          });
+        );
 
-          return descriptionSimilarityIndex ?? 0.85;
+        // Get current value for setting
+        let descriptionSimilarityIndex: number = await dataManager.getValue<number>('DescriptionSimilarityIndex', {
+            scopeType: 'Default',
+        });
+
+        // Set our defaults if the key does not already exist
+        if (!descriptionSimilarityIndex) {
+            descriptionSimilarityIndex = await dataManager.setValue<number>('DescriptionSimilarityIndex', 0.85, {
+                scopeType: 'Default',
+            });
+        }
+
+        return descriptionSimilarityIndex;
     }
 
     // perform similarity logic on a batch of WI's
-    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, titleSimilarityIndex : number, descriptionSimilarityIndex : number, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
+    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, titleSimilarityIndex: number, descriptionSimilarityIndex: number, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
         // Prepare our request body for this batch, only request title and description
         const requestBody = {
             "ids": workItemsChunk.map(workitem => { return workitem.id; }),
