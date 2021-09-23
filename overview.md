@@ -6,8 +6,6 @@ Checks are automatically performed on work items of the ***same type*** and on t
 - Title
 - Description
 
-We first check if a work item with a similar **Title** exists, if no similar work item exists we then perform the same checks based on the **Description** field. 
-
 Before performing our similarity check we normalize our text:
 
 1. Removing all HTML tags.
@@ -18,11 +16,6 @@ Similarity is established based on an index 0.0 - 1.0 :
 - 0.0 being least similar
 - 1.0 being most similar.
 
-By default this extension leverages the following thresholds for similarity index:
-
-- Title - 0.95
-- Description - 0.85 
-
-In the future these thresholds will be configurable.
+By default this extension leverages a default threshold of 0.80 for similarity index, in the future these thresholds will be configurable.
 
 This extension can be leveraged in combination with the [Find similar workitems](https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems) extension to establish which work items are similar to the current item.

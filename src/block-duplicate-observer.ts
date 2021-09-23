@@ -73,8 +73,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
         let id: string = await this._workItemFormService.getFieldValue("System.Id", { returnOriginalValue: false }) as string;
         const type: string = await this._workItemFormService.getFieldValue("System.WorkItemType", { returnOriginalValue: false }) as string;
 
-        const titleSimilarityIndex: number = await this.getTitleSimilarityIndex();
-        const descriptionSimilarityIndex: number = await this.getDescriptionSimilarityIndex();
+        const similarityIndex: number = await this.getSimilarityIndex();
 
         if (id) {
             this._logger.debug(`System.Id is '${id}'.`);
@@ -87,8 +86,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
         this._logger.debug(`System.Title is '${title}'.`);
         this._logger.debug(`System.Description is '${description}'.`);
         this._logger.debug(`System.WorkItemType is '${type}'.`);
-        this._logger.debug(`titleSimilarityIndex is '${titleSimilarityIndex}'.`);
-        this._logger.debug(`descriptionSimilarityIndex is '${descriptionSimilarityIndex}'.`);
+        this._logger.debug(`similarityIndex is '${similarityIndex}'.`);
 
         let wiqlQuery: string = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
         this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
@@ -106,7 +104,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
             // Get The current batch
             chunk_items = wiqlResult.workItems.slice(i, i + chunk);
             // Setup our batch request payload we dont want everything only certain fields
-            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, this.normalizeString(title), this.normalizeString(description), titleSimilarityIndex, descriptionSimilarityIndex, chunk_items));
+            promises.push(this.validateWorkItemChunk(hostBaseUrl, project.name, id, this.normalizeString(title), this.normalizeString(description), similarityIndex, chunk_items));
         }
 
         // Wait for any one of our promises to return bool(true) result then continue
@@ -129,8 +127,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
         // did we find any duplicates?
         if (duplicate) {
-            this._logger.info(`A duplicate work item of the same type exists with similar title and/or description.`);
-            this._workItemFormService.setError(`A duplicate work item of the same type exists with similar title and/or description.`);
+            this._logger.info(`A duplicate work item of the same type exists with similar title and description.`);
+            this._workItemFormService.setError(`A duplicate work item of the same type exists with similar title and description.`);
         }
         else {
             this._logger.info(`Not a Duplicate Work item.`);
@@ -152,51 +150,29 @@ class duplicateObserver implements IWorkItemNotificationListener {
     }
 
     // Get stored index or return default
-    private async getTitleSimilarityIndex(): Promise<number> {
+    private async getSimilarityIndex(): Promise<number> {
         const dataManager: IExtensionDataManager = await this._dataService.getExtensionDataManager(
             SDK.getExtensionContext().id,
             await SDK.getAccessToken()
         );
 
         // Get current value for setting
-        let titleSimilarityIndex: number = await dataManager.getValue<number>('TitleSimilarityIndex', {
+        let similarityIndex: number = await dataManager.getValue<number>('SimilarityIndex', {
             scopeType: 'Default',
         });
 
         // Set our defaults if the key does not already exist
-        if (!titleSimilarityIndex) {
-            titleSimilarityIndex = await dataManager.setValue<number>('TitleSimilarityIndex', 0.95, {
+        if (!similarityIndex) {
+            similarityIndex = await dataManager.setValue<number>('SimilarityIndex', 0.80, {
                 scopeType: 'Default',
             });
         }
 
-        return titleSimilarityIndex;
-    }
-
-    // Get stored index or return default
-    private async getDescriptionSimilarityIndex(): Promise<number> {
-        const dataManager: IExtensionDataManager = await this._dataService.getExtensionDataManager(
-            SDK.getExtensionContext().id,
-            await SDK.getAccessToken()
-        );
-
-        // Get current value for setting
-        let descriptionSimilarityIndex: number = await dataManager.getValue<number>('DescriptionSimilarityIndex', {
-            scopeType: 'Default',
-        });
-
-        // Set our defaults if the key does not already exist
-        if (!descriptionSimilarityIndex) {
-            descriptionSimilarityIndex = await dataManager.setValue<number>('DescriptionSimilarityIndex', 0.85, {
-                scopeType: 'Default',
-            });
-        }
-
-        return descriptionSimilarityIndex;
+        return similarityIndex;
     }
 
     // perform similarity logic on a batch of WI's
-    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, titleSimilarityIndex: number, descriptionSimilarityIndex: number, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
+    private async validateWorkItemChunk(hostBaseUrl: string, projectName: string, currentWorkItemId: string, currentWorkItemTitle: string, currentWorkItemDescription: string, similarityIndex: number, workItemsChunk: Array<WorkItemReference>): Promise<boolean> {
         // Prepare our request body for this batch, only request title and description
         const requestBody = {
             "ids": workItemsChunk.map(workitem => { return workitem.id; }),
@@ -235,37 +211,18 @@ class duplicateObserver implements IWorkItemNotificationListener {
                         this._logger.debug("filtered_workitems", filtered_workitems);
 
                         // first check for match title is fastest as shortest text
-                        if (currentWorkItemTitle &&
-                            currentWorkItemTitle !== "") {
-                            filtered_workitems.every((workitem: any) => {
-                                var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
-                                this._logger.debug("title_match", title_match);
 
-                                if (title_match >= titleSimilarityIndex) {
-                                    this._logger.info(`Matched title (SimilarityIndex=${title_match}) on work item id ${workitem.id}.`);
+                            filtered_workitems.every((workitem: any) => {
+                                var match: number = dice(`${currentWorkItemTitle}${currentWorkItemDescription}`, `${this.normalizeString(workitem.fields['System.Title'])}${this.normalizeString(workitem.fields['System.Description'])}`);
+                                this._logger.debug("match", match);
+
+                                if (match >= similarityIndex) {
+                                    this._logger.info(`Matched work item (SimilarityIndex=${match}) with id ${workitem.id}.`);
                                     duplicate = true;
                                     return false;
                                 }
                                 return true;
                             });
-                        }
-
-                        // we didnt find a matching title then lets look at the descriptions
-                        if (!duplicate &&
-                            currentWorkItemDescription &&
-                            currentWorkItemDescription !== "") {
-                            filtered_workitems.every((workitem: any) => {
-                                var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
-                                this._logger.debug("description_match", description_match);
-
-                                if (description_match >= descriptionSimilarityIndex) {
-                                    this._logger.info(`Matched description (SimilarityIndex=${description_match}) on work item id ${workitem.id}.`);
-                                    duplicate = true;
-                                    return false;
-                                }
-                                return true;
-                            });
-                        }
                     }
                     else {
                         this._logger.info(`Failed to retrieve work item chunk.`);
