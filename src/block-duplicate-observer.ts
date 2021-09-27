@@ -221,11 +221,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
                                 if((title_match + description_match) > 0)
                                 {
-                                    let aggregate_match : number = (title_match + description_match) / 2;
-                                    this._logger.debug("aggregate_match", aggregate_match);
+                                    let match : number = (title_match + description_match) / 2;
+                                    this._logger.info("match", match);
 
-                                    if (aggregate_match >= similarityIndex) {
-                                        this._logger.info(`Matched work item (SimilarityIndex=${aggregate_match}) with id ${workitem.id}.`);
+                                    if (match >= similarityIndex) {
+                                        this._logger.info(`Matched work item (SimilarityIndex=${match}) with id ${workitem.id}.`);
                                         duplicate = true;
                                         return false;
                                     }
