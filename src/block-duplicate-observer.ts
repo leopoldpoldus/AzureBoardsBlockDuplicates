@@ -213,13 +213,22 @@ class duplicateObserver implements IWorkItemNotificationListener {
                         // first check for match title is fastest as shortest text
 
                             filtered_workitems.every((workitem: any) => {
-                                var match: number = dice(`${currentWorkItemTitle}${currentWorkItemDescription}`, `${this.normalizeString(workitem.fields['System.Title'])}${this.normalizeString(workitem.fields['System.Description'])}`);
-                                this._logger.debug("match", match);
+                                var title_match: number = dice(currentWorkItemTitle, this.normalizeString(workitem.fields['System.Title']));
+                                var description_match: number = dice(currentWorkItemDescription, this.normalizeString(workitem.fields['System.Description']));
 
-                                if (match >= similarityIndex) {
-                                    this._logger.info(`Matched work item (SimilarityIndex=${match}) with id ${workitem.id}.`);
-                                    duplicate = true;
-                                    return false;
+                                this._logger.debug("title_match", title_match);
+                                this._logger.debug("description_match", description_match);
+
+                                if((title_match + description_match) > 0)
+                                {
+                                    let aggregate_match : number = (title_match + description_match) / 2;
+                                    this._logger.debug("aggregate_match", aggregate_match);
+
+                                    if (aggregate_match >= similarityIndex) {
+                                        this._logger.info(`Matched work item (SimilarityIndex=${aggregate_match}) with id ${workitem.id}.`);
+                                        duplicate = true;
+                                        return false;
+                                    }
                                 }
                                 return true;
                             });
