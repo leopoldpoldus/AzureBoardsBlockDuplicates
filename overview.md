@@ -6,10 +6,11 @@ Checks are automatically performed on work items of the ***same type*** and on t
 - Title
 - Description
 
-Before performing our similarity check we normalize our text:
+As we are more intrested in the textual content before performing our similarity check we normalize our text:
 
 1. Removing all HTML tags.
 2. Removing the following punctuation **!"#$%&'()\*+,-./:;?@[\\]^_`{|}~**.
+3. Convert to lowercase.
 
 Similarity is established based on an index 0.0 - 1.0 :
 
