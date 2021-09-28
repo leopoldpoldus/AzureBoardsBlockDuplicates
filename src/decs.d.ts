@@ -1,1 +1,1 @@
-declare module "fast-dice-coefficient"
+declare module 'fast-dice-coefficient';
