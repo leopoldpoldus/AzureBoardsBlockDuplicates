@@ -25,8 +25,7 @@ stages:
           displayName: 'Install Node CLI for Azure DevOps'
         - script: npm install
           displayName: 'Install Dependencies'
-        - script: |
-            npm run lint
+        - script: npm run lint
           displayName: 'Run ESLint'
         - script: |
             npm run package -- --override {\"version\": \"$(MajorVersion).$(MinorVersion).$(PatchVersion)\"}
