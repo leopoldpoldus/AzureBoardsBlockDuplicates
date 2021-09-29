@@ -2,7 +2,6 @@ import * as SDK from 'azure-devops-extension-sdk';
 import {
   CommonServiceIds,
   getClient,
-  IProjectInfo,
   IProjectPageService,
   ILocationService,
   IExtensionDataService,
@@ -32,19 +31,28 @@ class duplicateObserver implements IWorkItemNotificationListener {
   _statusCodes = [503, 504];
   _options = {
     retries: 3,
-    retryDelay: (attempt: any, error: any, response: any) => {
-      return Math.pow(2, attempt) * 1000;
+    retryDelay: (attempt: number, error: Error, response: Response) => {
+      const delay: number = Math.pow(2, attempt) * 1000;
+      this._logger.info(
+        `retrying, delay ${delay}s attempt number ${attempt + 1}`
+      );
+      this._logger.debug(`delaying ${error}, status ${response.status}`);
+      return delay;
     },
-    retryOn: (attempt: any, error: any, response: any) => {
+    retryOn: (attempt: number, error: Error, response: Response) => {
       // retry on any network error, or specific status codes
       if (error !== null || this._statusCodes.includes(response.status)) {
         this._logger.info(`retrying, attempt number ${attempt + 1}`);
+        this._logger.debug(`delaying ${error}, status ${response.status}`);
         return true;
       }
     },
   };
 
-  _fetch: any = fetchBuilder(originalFetch, this._options);
+  _fetch: (
+    input: RequestInfo,
+    init?: fetchBuilder.RequestInitWithRetry
+  ) => Promise<Response> = fetchBuilder(originalFetch, this._options);
 
   constructor(
     workItemFormService: IWorkItemFormService,
@@ -120,7 +128,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._logger.debug(`System.WorkItemType is '${type}'.`);
     this._logger.debug(`similarityIndex is '${similarityIndex}'.`);
 
-    const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = \'${type}\' AND [State] <> \'Closed\' ORDER BY [System.CreatedDate] DESC`;
+    const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = '${type}' AND [State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
 
     // Search for existing WI's which are not closed and are of the same type of the current WI
@@ -134,11 +142,10 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._logger.debug(`WorkItem Count is '${wiqlResult.workItems.length}'.`);
 
     // Process the returned WI's in batches of 200
-    let promises: Array<Promise<boolean>> = [],
-      i: number,
-      j: number,
-      chunk_items: Array<WorkItemReference>,
+    const promises: Array<Promise<boolean>> = [],
       chunk = 200;
+    let i: number, j: number, chunk_items: Array<WorkItemReference>;
+
     for (i = 0, j = wiqlResult.workItems.length; i < j; i += chunk) {
       // Get The current batch
       chunk_items = wiqlResult.workItems.slice(i, i + chunk);
@@ -192,7 +199,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
   private normalizeString(orignial_text: string): string {
     if (orignial_text && orignial_text !== '')
       return striptags(orignial_text)
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // !"#$%&'()*+,-./:;?@[\]^_`{|}~
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '') // !"#$%&'()*+,-./:;?@[\]^_`{|}~
         .replace(/\s{2,}/g, ' ')
         .trim()
         .toLowerCase();
@@ -252,10 +259,10 @@ class duplicateObserver implements IWorkItemNotificationListener {
     const accessToken = await SDK.getAccessToken();
 
     // return a promise
-    return new Promise<boolean>(async (resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
       try {
         // Get our WorkItem data using the batch api
-        const response: Response = await this._fetch(
+        this._fetch(
           `${hostBaseUrl}${projectName}/_apis/wit/workitemsbatch?api-version=6.0`,
           {
             method: 'POST',
