@@ -27,7 +27,7 @@ stages:
           displayName: 'Install Dependencies'
         - script: |
             npm run lint
-          displayName: 'Run linter'
+          displayName: 'Run ESLint'
         - script: |
             npm run package -- --override {\"version\": \"$(MajorVersion).$(MinorVersion).$(PatchVersion)\"}
           displayName: 'Build & Package Extension'
