@@ -57,31 +57,31 @@ export default class Logger {
     this.level = level;
   }
 
-  debug(msg: string, ...optionalParams: any[]) {
+  debug(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.Debug, optionalParams);
   }
 
-  info(msg: string, ...optionalParams: any[]) {
+  info(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.Info, optionalParams);
   }
 
-  warn(msg: string, ...optionalParams: any[]) {
+  warn(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.Warn, optionalParams);
   }
 
-  error(msg: string, ...optionalParams: any[]) {
+  error(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.Error, optionalParams);
   }
 
-  fatal(msg: string, ...optionalParams: any[]) {
+  fatal(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.Fatal, optionalParams);
   }
 
-  log(msg: string, ...optionalParams: any[]) {
+  log(msg: string, ...optionalParams: any[]): void {
     this.writeToLog(msg, LogLevel.All, optionalParams);
   }
 
-  private writeToLog(msg: string, level: LogLevel, params: any[]) {
+  private writeToLog(msg: string, level: LogLevel, params: any[]): void {
     if (this.shouldLog(level)) {
       const entry: LogEntry = new LogEntry();
       entry.message = msg;

@@ -5,7 +5,8 @@
   "scripts": {
     "build": "webpack",
     "package": "npm run build && tfx extension create --manifests vss-extension.json --output-path ./packages/",
-    "linter": "eslint src --fix --cache"
+    "lint": "eslint src --cache",
+    "lintfix": "eslint src --fix --cache"
   },
   "keywords": [],
   "author": "Gareth Emslie",

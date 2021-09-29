@@ -26,6 +26,9 @@ stages:
         - script: npm install
           displayName: 'Install Dependencies'
         - script: |
+            npm run lint
+          displayName: 'Run linter'
+        - script: |
             npm run package -- --override {\"version\": \"$(MajorVersion).$(MinorVersion).$(PatchVersion)\"}
           displayName: 'Build & Package Extension'
         - task: PowerShell@2
