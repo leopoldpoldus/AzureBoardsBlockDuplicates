@@ -36,14 +36,14 @@ class duplicateObserver implements IWorkItemNotificationListener {
       this._logger.info(
         `retrying, delay ${delay}s before attempt number ${attempt + 1}`
       );
-      this._logger.debug(`delaying ${error}, status ${response.status}`);
+      this._logger.debug(`retryDelay ${error}, status ${response.status}`);
       return delay;
     },
     retryOn: (attempt: number, error: Error, response: Response) => {
       // retry on any network error, or specific status codes
       if (error !== null || this._statusCodes.includes(response.status)) {
         this._logger.info(`retrying, attempt number ${attempt + 1}`);
-        this._logger.debug(`delaying ${error}, status ${response.status}`);
+        this._logger.debug(`retryOn ${error}, status ${response.status}`);
         return true;
       }
     },
