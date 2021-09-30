@@ -31,6 +31,7 @@ stages:
           displayName: 'Install Dependencies'
         - script: npm run lint
           displayName: 'Run ESLint'
+          condition: eq(variables.isPR, true)
         - script: |
             npm run build
           condition: eq(variables.isPR, true)
