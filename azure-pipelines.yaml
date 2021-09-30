@@ -7,6 +7,7 @@ variables:
   MinorVersion : 0
   PatchVersion : $[counter(format('nexus-extension-{0}.{1}.{2}', variables['Build.SourceBranchName'],variables['MajorVersion'],variables['MinorVersion']), 66)]
   isPR : $[startsWith(variables['Build.SourceBranch'],'refs/pull/')] 
+  isMain : $[startsWith(variables['Build.SourceBranch'],'refs/heads/main')] 
 
 name: $(major).$(minor).$(PatchVersion)$(Rev:.r)
 
@@ -38,25 +39,25 @@ stages:
           displayName: 'Build Extension'
         - script: |
             npm run package -- --override {\"version\": \"$(MajorVersion).$(MinorVersion).$(PatchVersion)\"}
-          condition: eq(variables.isPR, false)
+          condition: eq(variables.isMain, true)
           displayName: 'Build & Package Extension'
         - task: PowerShell@2
           displayName: 'Tag Git Commit'
-          condition: eq(variables.isPR, false)
+          condition: eq(variables.isMain, true)
           inputs:
             targetType: 'inline'
             script: |
               git tag "v$(MajorVersion).$(MinorVersion).$(PatchVersion)"
         - task: PowerShell@2
           displayName: 'Push Git Tags'
-          condition: eq(variables.isPR, false)
+          condition: eq(variables.isMain, true)
           inputs:
             targetType: 'inline'
             script: |
               git push --tags
         - task: GitHubRelease@1
           displayName: 'Publish Extension as Release'
-          condition: eq(variables.isPR, false)
+          condition: eq(variables.isMain, true)
           inputs:
             gitHubConnection: 'github.com_keyoke'
             repositoryName: '$(Build.Repository.Name)'
