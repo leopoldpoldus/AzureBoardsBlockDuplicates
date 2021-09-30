@@ -1,10 +1,15 @@
 trigger:
 - main
-pr: none
+pr:
+  - main
 variables:
   MajorVersion : 0
   MinorVersion : 0
-  PatchVersion : $[counter(format('nexus-extension-{0}.{1}',variables['MajorVersion'],variables['MinorVersion']), 24)]
+  PatchVersion : $[counter(format('nexus-extension-{0}.{1}.{2}', variables['Build.SourceBranchName'],variables['MajorVersion'],variables['MinorVersion']), 66)]
+  isPR : $[startsWith(variables['Build.SourceBranch'],'refs/pull/')] 
+
+name: $(major).$(minor).$(PatchVersion)$(Rev:.r)
+
 stages:
   - stage : build_package
     displayName: Build & Package Extension
@@ -28,22 +33,30 @@ stages:
         - script: npm run lint
           displayName: 'Run ESLint'
         - script: |
+            npm run build
+          condition: eq(variables.isPR, true)
+          displayName: 'Build Extension'
+        - script: |
             npm run package -- --override {\"version\": \"$(MajorVersion).$(MinorVersion).$(PatchVersion)\"}
+          condition: eq(variables.isPR, false)
           displayName: 'Build & Package Extension'
         - task: PowerShell@2
           displayName: 'Tag Git Commit'
+          condition: eq(variables.isPR, false)
           inputs:
             targetType: 'inline'
             script: |
               git tag "v$(MajorVersion).$(MinorVersion).$(PatchVersion)"
         - task: PowerShell@2
           displayName: 'Push Git Tags'
+          condition: eq(variables.isPR, false)
           inputs:
             targetType: 'inline'
             script: |
               git push --tags
         - task: GitHubRelease@1
           displayName: 'Publish Extension as Release'
+          condition: eq(variables.isPR, false)
           inputs:
             gitHubConnection: 'github.com_keyoke'
             repositoryName: '$(Build.Repository.Name)'
