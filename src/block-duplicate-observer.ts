@@ -34,7 +34,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     retryDelay: (attempt: number, error: Error, response: Response) => {
       const delay: number = Math.pow(2, attempt) * 1000;
       this._logger.info(
-        `retrying, delay ${delay}s attempt number ${attempt + 1}`
+        `retrying, delay ${delay}s before attempt number ${attempt + 1}`
       );
       this._logger.debug(`delaying ${error}, status ${response.status}`);
       return delay;
