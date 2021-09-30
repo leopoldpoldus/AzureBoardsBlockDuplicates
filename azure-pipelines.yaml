@@ -9,8 +9,6 @@ variables:
   isPR : $[startsWith(variables['Build.SourceBranch'],'refs/pull/')] 
   isMain : $[startsWith(variables['Build.SourceBranch'],'refs/heads/main')] 
 
-name: $(major).$(minor).$(PatchVersion)$(Rev:.r)
-
 stages:
   - stage : build_package
     displayName: Build & Package Extension
