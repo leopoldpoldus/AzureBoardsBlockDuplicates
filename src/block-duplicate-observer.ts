@@ -14,6 +14,9 @@ import {
   WorkItemTrackingRestClient,
   WorkItemTrackingServiceIds,
   IWorkItemNotificationListener,
+  IWorkItemFieldChangedArgs,
+  IWorkItemLoadedArgs,
+  IWorkItemChangedArgs,
 } from 'azure-devops-extension-api/WorkItemTracking';
 import * as dice from 'fast-dice-coefficient';
 import * as striptags from 'striptags';
@@ -351,7 +354,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
   }
 
   // Called when the active work item is modified
-  public async onFieldChanged(args: any) {
+  public async onFieldChanged(args: IWorkItemFieldChangedArgs) {
     this._logger.debug('WorkItemForm.onFieldChanged().');
     this._logger.debug('args', args);
     const changedFields = args.changedFields;
@@ -370,13 +373,15 @@ class duplicateObserver implements IWorkItemNotificationListener {
     }
   }
 
-  public async changedFields(args: any) {
+  public async changedFields(args: IWorkItemChangedArgs) {
     this._logger.debug('WorkItemForm.changedFields().');
+    this._logger.debug('args', args);
   }
 
   // Called when a new work item is being loaded in the UI
-  public async onLoaded(args: any) {
+  public async onLoaded(args: IWorkItemLoadedArgs) {
     this._logger.debug('WorkItemForm.onLoaded().');
+    this._logger.debug('args', args);
 
     const title: string = (await this._workItemFormService.getFieldValue(
       'System.Title',
@@ -393,13 +398,15 @@ class duplicateObserver implements IWorkItemNotificationListener {
   }
 
   // Called when the work item is reset to its unmodified state (undo)
-  public async onReset(args: any) {
+  public async onReset(args: IWorkItemChangedArgs) {
     this._logger.debug('WorkItemForm.onReset().');
+    this._logger.debug('args', args);
   }
 
   // Called when the work item has been refreshed from the server
-  public async onRefreshed(args: any) {
+  public async onRefreshed(args: IWorkItemChangedArgs) {
     this._logger.debug('WorkItemForm.onRefreshed().');
+    this._logger.debug('args', args);
 
     const title: string = (await this._workItemFormService.getFieldValue(
       'System.Title',
@@ -416,13 +423,15 @@ class duplicateObserver implements IWorkItemNotificationListener {
   }
 
   // Called after the work item has been saved
-  public async onSaved(args: any) {
+  public async onSaved(args: IWorkItemChangedArgs) {
     this._logger.debug('WorkItemForm.onSaved().');
+    this._logger.debug('args', args);
   }
 
   // Called when the active work item is being unloaded in the UI
-  public async onUnloaded(args: any) {
+  public async onUnloaded(args: IWorkItemChangedArgs) {
     this._logger.debug('WorkItemForm.onUnloaded().');
+    this._logger.debug('args', args);
   }
 }
 
