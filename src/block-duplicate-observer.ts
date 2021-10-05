@@ -20,9 +20,9 @@ import {
   IWorkItemChangedArgs,
 } from 'azure-devops-extension-api/WorkItemTracking';
 import * as dice from 'fast-dice-coefficient';
-import * as striptags from 'striptags';
-import * as originalFetch from 'isomorphic-fetch';
-import * as fetchBuilder from 'fetch-retry';
+import striptags from 'striptags';
+import originalFetch from 'isomorphic-fetch';
+import fetchBuilder from 'fetch-retry';
 import Logger, { LogLevel } from './logger';
 
 class duplicateObserver implements IWorkItemNotificationListener {
@@ -56,10 +56,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
   _fetch: (
     input: RequestInfo,
     init?: fetchBuilder.RequestInitWithRetry
-  ) => Promise<Response> = fetchBuilder.default(
-    originalFetch.default,
-    this._options
-  );
+  ) => Promise<Response> = fetchBuilder(originalFetch, this._options);
 
   constructor(
     workItemFormService: IWorkItemFormService,
@@ -211,8 +208,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
   // Remove things we dont want to compare on and ensure comparison based on lower case strings
   private normalizeString(orignial_text: string): string {
     if (orignial_text && orignial_text !== '')
-      return striptags
-        .default(orignial_text)
+      return striptags(orignial_text)
         .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '') // !"#$%&'()*+,-./:;?@[\]^_`{|}~
         .replace(/\s{2,}/g, ' ')
         .trim()
