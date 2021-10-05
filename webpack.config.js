@@ -6,7 +6,8 @@ module.exports = {
   mode: "production",
   target: "web",
   entry: {
-    'block-duplicate-observer' : './src/block-duplicate-observer.ts'
+    'block-duplicate-observer': './src/block-duplicate-observer.ts',
+    'block-duplicate-project-admin': './src/block-duplicate-project-admin.tsx'
   },
   optimization: {
     minimizer: [
@@ -22,9 +23,17 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.ts?$/,
+        test: /\.(ts|tsx)$/,
         use: 'ts-loader',
         exclude: /node_modules/,
+      },
+      {
+        test: /\.scss$/,
+        use: ["style-loader", "css-loader","azure-devops-ui/buildScripts/css-variables-loader", "sass-loader"]
+      },
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
       },
       {
           test: /\.(png|jpe?g|gif)$/i,
@@ -32,11 +41,17 @@ module.exports = {
           options: {
             outputPath: '../images',
           },
-      }
+      },
+      {
+        test: /\.woff$/,
+        use: [{
+            loader: 'base64-inline-loader'
+        }]
+    },
     ],
   },
   resolve: {
-    extensions: [ '.html', '.ts', '.js' ],
+    extensions: [ '.html','.css','.scss', '.ts', '.tsx', '.js' ],
   },
   output: {
     path: path.resolve(__dirname, 'dist'),

@@ -60,12 +60,25 @@
         {  
             "id": "block-duplicate-observer",
             "type": "ms.vss-work-web.work-item-notifications",
-            "description": "",
+            "description": "Block Duplicate Work Items WorkItem Form Listener",
             "targets": [
                 "ms.vss-work-web.work-item-form"
             ],
             "properties": {
                 "uri": "block-duplicate-observer.html"
+            }
+        },
+        {
+            "id": "block-duplicate-project-admin-hub",
+            "type": "ms.vss-web.hub",
+            "description": "Block Duplicate Work Items Admin Hub",
+            "targets": [
+                "ms.vss-web.project-admin-hub-group"
+            ],
+            "properties": {
+                "name": "Block Duplicate Work Items Admin Hub",
+                "order": 100,
+                "uri": "block-duplicate-project-admin.html"
             }
         }
     ],
@@ -85,6 +98,10 @@
         },
         {
             "path": "block-duplicate-observer.html",
+            "addressable": true
+        },
+        {
+            "path": "block-duplicate-project-admin.html",
             "addressable": true
         }
     ]
