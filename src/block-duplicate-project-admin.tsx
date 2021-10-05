@@ -1,10 +1,10 @@
 import './block-duplicate-project-admin.scss';
+import { Header, TitleSize } from 'azure-devops-ui/Header';
+import { Page } from 'azure-devops-ui/Page';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as SDK from 'azure-devops-extension-sdk';
 import Logger, { LogLevel } from './logger';
-import { Header } from 'azure-devops-ui/Header';
-import { Page } from 'azure-devops-ui/Page';
 import {
   CommonServiceIds,
   IExtensionDataService,
@@ -60,15 +60,12 @@ class BlockDuplicatesAdmin extends React.Component<
 
   public render(): JSX.Element {
     return (
-      <Page className="block-duplicate-observer-project-admin-hub flex-grow">
-        <Header title="Block Duplicate Work Items Admin Hub" />
-        <div>
-          <h3>Similarity Index</h3>
-          <p>
-            <strong>{this.state.SimilarityIndex}</strong>
-          </p>
-        </div>
-      </Page>
+      <div>
+        <h3>Similarity Index</h3>
+        <p>
+          <strong>{this.state.SimilarityIndex}</strong>
+        </p>
+      </div>
     );
   }
 }
