@@ -19,7 +19,7 @@ import {
   IWorkItemLoadedArgs,
   IWorkItemChangedArgs,
 } from 'azure-devops-extension-api/WorkItemTracking';
-import * as dice from 'fast-dice-coefficient';
+import dice from 'fast-dice-coefficient';
 import striptags from 'striptags';
 import originalFetch from 'isomorphic-fetch';
 import fetchBuilder from 'fetch-retry';
