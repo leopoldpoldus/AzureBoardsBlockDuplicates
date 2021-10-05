@@ -3,7 +3,6 @@ const TerserPlugin = require('terser-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
-  mode: "production",
   target: "web",
   entry: {
     'block-duplicate-observer': './src/block-duplicate-observer.ts',
@@ -52,6 +51,9 @@ module.exports = {
   },
   resolve: {
     extensions: [ '.html','.css','.scss', '.ts', '.tsx', '.js' ],
+    alias: {
+      "azure-devops-extension-sdk": path.resolve("node_modules/azure-devops-extension-sdk")
+    },
   },
   output: {
     path: path.resolve(__dirname, 'dist'),

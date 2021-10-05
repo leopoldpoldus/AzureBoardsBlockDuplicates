@@ -6,6 +6,7 @@ import {
   ILocationService,
   IExtensionDataService,
   IExtensionDataManager,
+  IProjectInfo,
 } from 'azure-devops-extension-api';
 import {
   IWorkItemFormService,
@@ -29,7 +30,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
   _locationService: ILocationService;
   _projectService: IProjectPageService;
   _dataService: IExtensionDataService;
-  _timeout: NodeJS.Timeout;
+  _timeout: NodeJS.Timeout | undefined;
   _logger: Logger = new Logger(LogLevel.Info);
   _statusCodes = [503, 504];
   _options = {
@@ -55,7 +56,10 @@ class duplicateObserver implements IWorkItemNotificationListener {
   _fetch: (
     input: RequestInfo,
     init?: fetchBuilder.RequestInitWithRetry
-  ) => Promise<Response> = fetchBuilder(originalFetch, this._options);
+  ) => Promise<Response> = fetchBuilder.default(
+    originalFetch.default,
+    this._options
+  );
 
   constructor(
     workItemFormService: IWorkItemFormService,
@@ -67,6 +71,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._locationService = locationService;
     this._projectService = projectService;
     this._dataService = dataService;
+    this._timeout = undefined;
   }
 
   // main entrypoint for validation logic
@@ -100,7 +105,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
     );
 
     // Get The current ADO Project we need the project name later
-    const project = await this._projectService.getProject();
+    const project: IProjectInfo | undefined =
+      await this._projectService.getProject();
 
     // Get The WIT rest client
     const client: WorkItemTrackingRestClient = getClient(
@@ -134,40 +140,44 @@ class duplicateObserver implements IWorkItemNotificationListener {
     const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = '${type}' AND [State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
 
-    // Search for existing WI's which are not closed and are of the same type of the current WI
-    const wiqlResult: WorkItemQueryResult = await client.queryByWiql(
-      {
-        query: wiqlQuery,
-      },
-      project.name
-    );
+    let duplicate = false;
 
-    this._logger.debug(`WorkItem Count is '${wiqlResult.workItems.length}'.`);
-
-    // Process the returned WI's in batches of 200
-    const promises: Array<Promise<boolean>> = [],
-      chunk = 200;
-    let i: number, j: number, chunk_items: Array<WorkItemReference>;
-
-    for (i = 0, j = wiqlResult.workItems.length; i < j; i += chunk) {
-      // Get The current batch
-      chunk_items = wiqlResult.workItems.slice(i, i + chunk);
-      // Setup our batch request payload we dont want everything only certain fields
-      promises.push(
-        this.validateWorkItemChunk(
-          hostBaseUrl,
-          project.name,
-          id,
-          this.normalizeString(title),
-          this.normalizeString(description),
-          similarityIndex,
-          chunk_items
-        )
+    if (project) {
+      // Search for existing WI's which are not closed and are of the same type of the current WI
+      const wiqlResult: WorkItemQueryResult = await client.queryByWiql(
+        {
+          query: wiqlQuery,
+        },
+        project.name
       );
-    }
 
-    // Wait for any one of our promises to return bool(true) result then continue
-    const duplicate: boolean = await this.getfirstResolvedPromise(promises);
+      this._logger.debug(`WorkItem Count is '${wiqlResult.workItems.length}'.`);
+
+      // Process the returned WI's in batches of 200
+      const promises: Array<Promise<boolean>> = [],
+        chunk = 200;
+      let i: number, j: number, chunk_items: Array<WorkItemReference>;
+
+      for (i = 0, j = wiqlResult.workItems.length; i < j; i += chunk) {
+        // Get The current batch
+        chunk_items = wiqlResult.workItems.slice(i, i + chunk);
+        // Setup our batch request payload we dont want everything only certain fields
+        promises.push(
+          this.validateWorkItemChunk(
+            hostBaseUrl,
+            project.name,
+            id,
+            this.normalizeString(title),
+            this.normalizeString(description),
+            similarityIndex,
+            chunk_items
+          )
+        );
+      }
+
+      // Wait for any one of our promises to return bool(true) result then continue
+      duplicate = await this.getfirstResolvedPromise(promises);
+    }
 
     // Check if we have any other invalid fields
     const invalidFields = await this._workItemFormService.getInvalidFields();
@@ -201,7 +211,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
   // Remove things we dont want to compare on and ensure comparison based on lower case strings
   private normalizeString(orignial_text: string): string {
     if (orignial_text && orignial_text !== '')
-      return striptags(orignial_text)
+      return striptags
+        .default(orignial_text)
         .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '') // !"#$%&'()*+,-./:;?@[\]^_`{|}~
         .replace(/\s{2,}/g, ' ')
         .trim()
