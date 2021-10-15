@@ -353,3 +353,6 @@ dist/
 
 # ignore lint cache
 .eslintcache
+
+#dotenv
+.ENV
