@@ -1,13 +1,14 @@
-{
+  {
     "compilerOptions": {
         "charset": "utf8",
         "experimentalDecorators": true,
         "module": "amd",
+        "sourceMap": true,
         "moduleResolution": "node",
         "noImplicitAny": true,
         "noImplicitThis": true,
         "strict": true,
-        "target": "es5",
+        "target": "es6",
         "rootDir": "src/",
         "outDir": "dist/",
         "jsx": "react",
@@ -21,6 +22,7 @@
             "react",
             "node"
         ],
-        "esModuleInterop": true
-    }
+        "esModuleInterop": true,
+    },
+    "exclude": ["node_modules", "typings"]
 }
