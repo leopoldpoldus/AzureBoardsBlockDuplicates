@@ -1,11 +1,11 @@
 {
     "manifestVersion": 1,
-    "id": "block-duplicate-work-items",
+    "id": "block-duplicate-work-items-demo",
     "publisher": "soft-cor",
-    "version": "0.0.77",
+    "version": "0.0.93",
     "name": "Block Duplicate Work Items",
     "description": "Block Duplicate Work Items",
-    "public": true,
+    "public": false,
     "galleryFlags": [
         "Preview"
     ],
