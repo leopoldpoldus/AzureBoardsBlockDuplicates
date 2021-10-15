@@ -5,7 +5,7 @@
     "version": "0.0.93",
     "name": "Block Duplicate Work Items",
     "description": "Block Duplicate Work Items",
-    "public": false,
+    "public": true,
     "galleryFlags": [
         "Preview"
     ],
