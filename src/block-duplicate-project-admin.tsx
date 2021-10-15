@@ -91,7 +91,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
   public render(): JSX.Element {
     const config: IBlockDuplicatesAdminState = this.state;
     return (
-      <Page>
+      <div>
         <div>
           <h3>Similarity Index</h3>
           <p>
@@ -111,7 +111,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
             onClick={() => this.onSaveClick()}
           />
         </div>
-      </Page>
+      </div>
     );
   }
 }
