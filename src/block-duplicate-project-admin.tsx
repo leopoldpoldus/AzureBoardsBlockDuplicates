@@ -97,8 +97,11 @@ export default class BlockDuplicatesAdmin extends React.Component<
           <p>
             This extension provides the ability to block duplicate work item
             creation, similarity between work items is currently determined
-            based on [Dice&apos;s
-            Coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
+            based on{' '}
+            <a href="http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient">
+              Dice&apos;s Coefficient
+            </a>
+            .
           </p>
           <p>
             Checks are automatically performed on work items of the{' '}
@@ -140,9 +143,10 @@ export default class BlockDuplicatesAdmin extends React.Component<
             />
           </p>
           <p>
-            This extension can be leveraged in combination with the [Find
-            similar
-            workitems](https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems)
+            This extension can be leveraged in combination with the
+            <a href="https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems">
+              Find similar workitems
+            </a>
             extension to establish which work items are similar to the current
             item.
           </p>
