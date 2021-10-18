@@ -17,6 +17,6 @@ Similarity is established based on an index 0.0 - 1.0 :
 - 0.0 being least similar
 - 1.0 being most similar.
 
-By default this extension leverages a default threshold of 0.80 for similarity index, in the future these thresholds will be configurable.
+By default this extension leverages a default threshold of 0.80 for similarity index, this threshold is configurable from the project's admin hub.
 
 This extension can be leveraged in combination with the [Find similar workitems](https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems) extension to establish which work items are similar to the current item.

@@ -93,8 +93,42 @@ export default class BlockDuplicatesAdmin extends React.Component<
     return (
       <div>
         <div>
-          <h3>Similarity Index</h3>
+          <h3>Block Duplicate Work Items</h3>
           <p>
+            This extension provides the ability to block duplicate work item
+            creation, similarity between work items is currently determined
+            based on [Dice&apos;s
+            Coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
+          </p>
+          <p>
+            Checks are automatically performed on work items of the{' '}
+            <strong>same type</strong> and on the following fields :
+            <ul>
+              <li>Title</li>
+              <li>Description</li>
+            </ul>
+          </p>
+          <p>
+            As we are more intrested in the textual content before performing
+            our similarity check we normalize our text:
+            <ol>
+              <li>Removing all HTML tags.</li>
+              <li>
+                Removing the following punctuation{' '}
+                {'!"#$%&amp;\'()*+,-./:;?@[\\]^_`{|}~'}.
+              </li>
+              <li>Convert to lowercase.</li>
+            </ol>
+          </p>
+          <p>
+            Similarity is established based on an index 0.0 - 1.0 :
+            <ul>
+              <li>0.0 being least similar.</li>
+              <li>1.0 being most similar.</li>
+            </ul>
+          </p>
+          <p>
+            Current Similarity Index threshold is:
             <input
               type="text"
               onChange={(e) => {
@@ -105,10 +139,17 @@ export default class BlockDuplicatesAdmin extends React.Component<
               value={config.SimilarityIndex}
             />
           </p>
+          <p>
+            This extension can be leveraged in combination with the [Find
+            similar
+            workitems](https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems)
+            extension to establish which work items are similar to the current
+            item.
+          </p>
           <input
             type="button"
             value="Save"
-            onClick={() => this.onSaveClick()}
+            onClick={async () => await this.onSaveClick()}
           />
         </div>
       </div>
