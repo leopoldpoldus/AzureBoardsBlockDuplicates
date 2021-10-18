@@ -131,7 +131,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
             </ul>
           </p>
           <p>
-            Current Similarity Index threshold is:
+            Current Similarity Index threshold is:{' '}
             <input
               type="text"
               onChange={(e) => {
@@ -143,10 +143,10 @@ export default class BlockDuplicatesAdmin extends React.Component<
             />
           </p>
           <p>
-            This extension can be leveraged in combination with the
+            This extension can be leveraged in combination with the{' '}
             <a href="https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems">
               Find similar workitems
-            </a>
+            </a>{' '}
             extension to establish which work items are similar to the current
             item.
           </p>
