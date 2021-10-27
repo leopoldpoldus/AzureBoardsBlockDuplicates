@@ -209,7 +209,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
             </ul>
           </p>
           <p>
-            As we are more intrested in the textual content before performing
+            As we are more interested in the textual content before performing
             our similarity check we normalize our text:
             <ol>
               <li>Removing all HTML tags.</li>
