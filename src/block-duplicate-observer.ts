@@ -203,26 +203,27 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // did we find any duplicates?
     if (duplicate) {
+      const typeFilter: string = sameType ? 'of the same type ' : '';
       if (includeTitle && includeDesciption) {
         this._logger.info(
-          'A duplicate work item of the same type exists with similar title and description.'
+          `A duplicate work item ${typeFilter}exists with similar title and description.`
         );
         this._workItemFormService.setError(
-          'A duplicate work item of the same type exists with similar title and description.'
+          `A duplicate work item ${typeFilter}exists with similar title and description.`
         );
       } else if (includeTitle) {
         this._logger.info(
-          'A duplicate work item of the same type exists with similar title.'
+          `A duplicate work item ${typeFilter}exists with similar title.`
         );
         this._workItemFormService.setError(
-          'A duplicate work item of the same type exists with similar title.'
+          `A duplicate work item ${typeFilter}exists with similar title.`
         );
       } else {
         this._logger.info(
-          'A duplicate work item of the same type exists with similar description.'
+          `A duplicate work item ${typeFilter}exists with similar description.`
         );
         this._workItemFormService.setError(
-          'A duplicate work item of the same type exists with similar description.'
+          `A duplicate work item ${typeFilter}exists with similar description.`
         );
       }
     } else {
