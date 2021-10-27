@@ -123,6 +123,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     const similarityIndex: number = await this.getSimilarityIndex();
     const includeTitle: boolean = await this.getIncludeTitle();
     const includeDesciption: boolean = await this.getIncludeDesciption();
+    const sameType: boolean = await this.getSameType();
 
     if (id) {
       this._logger.debug(`System.Id is '${id}'.`);
@@ -137,8 +138,11 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._logger.debug(`similarityIndex is '${similarityIndex}'.`);
     this._logger.debug(`includeTitle is '${includeTitle}'`);
     this._logger.debug(`includeDesciption is '${includeDesciption}'`);
+    this._logger.debug(`sameType is '${sameType}'`);
 
-    const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = '${type}' AND [State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
+    const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE ${
+      sameType ? `[System.WorkItemType] = '${type} AND ` : ''
+    }[State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
 
     let duplicate = false;
@@ -320,6 +324,28 @@ class duplicateObserver implements IWorkItemNotificationListener {
     }
 
     return includeDesciption;
+  }
+
+  // Get stored index or return default
+  private async getSameType(): Promise<boolean> {
+    const dataManager: IExtensionDataManager =
+      await this._dataService.getExtensionDataManager(
+        SDK.getExtensionContext().id,
+        await SDK.getAccessToken()
+      );
+
+    // Get current value for setting
+    let sameType: boolean = await dataManager.getValue<boolean>('SameType', {
+      scopeType: 'Default',
+    });
+
+    if (sameType == null) {
+      sameType = await dataManager.setValue<boolean>('SameType', true, {
+        scopeType: 'Default',
+      });
+    }
+
+    return sameType;
   }
 
   // perform similarity logic on a batch of WI's
