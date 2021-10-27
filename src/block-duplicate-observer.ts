@@ -142,7 +142,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE ${
       sameType ? `[System.WorkItemType] = '${type}' AND ` : ''
-    }[State] <> 'Closed' AND ([System.Title] <> '' OR [System.Description] <> '') ORDER BY [System.CreatedDate] DESC`;
+    }[State] <> 'Closed' AND ([System.Title] <> '' OR [System.Description] Is Not Empty) ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
 
     let duplicate = false;
