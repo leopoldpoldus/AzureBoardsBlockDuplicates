@@ -17,6 +17,7 @@ interface IBlockDuplicatesAdminState {
   SimilarityIndex: string;
   IncludeTitle: boolean;
   IncludeDesciption: boolean;
+  SameType: boolean;
 }
 
 export default class BlockDuplicatesAdmin extends React.Component<
@@ -32,6 +33,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
       SimilarityIndex: '',
       IncludeTitle: true,
       IncludeDesciption: true,
+      SameType: true,
     };
 
     this.onSaveClick = this.onSaveClick.bind(this);
@@ -97,6 +99,17 @@ export default class BlockDuplicatesAdmin extends React.Component<
         return prevState;
       });
     }
+
+    const sameType: boolean = await dataManager.getValue<boolean>('SameType', {
+      scopeType: 'Default',
+    });
+
+    if (sameType) {
+      this.setState((prevState: IBlockDuplicatesAdminState) => {
+        prevState.SameType = sameType;
+        return prevState;
+      });
+    }
   }
 
   public async onSaveClick(): Promise<void> {
@@ -105,9 +118,11 @@ export default class BlockDuplicatesAdmin extends React.Component<
     const similarityIndex = Number(config.SimilarityIndex);
     const includeTitle = config.IncludeTitle;
     const includeDesciption = config.IncludeDesciption;
+    const sameType = config.SameType;
     this._logger.debug(`Setting similarityIndex to ${similarityIndex}`);
     this._logger.debug(`Setting includeTitle to ${includeTitle}`);
     this._logger.debug(`Setting includeDesciption to ${includeDesciption}`);
+    this._logger.debug(`Setting sameType to ${sameType}`);
 
     const dataService: IExtensionDataService =
       await SDK.getService<IExtensionDataService>(
@@ -132,6 +147,9 @@ export default class BlockDuplicatesAdmin extends React.Component<
         scopeType: 'Default',
       }
     );
+    await dataManager.setValue<boolean>('SameType', sameType, {
+      scopeType: 'Default',
+    });
   }
 
   public render(): JSX.Element {
@@ -150,8 +168,19 @@ export default class BlockDuplicatesAdmin extends React.Component<
             .
           </p>
           <p>
-            Checks are automatically performed on work items of the{' '}
-            <strong>same type</strong> and on the following fields :
+            Checks are automatically performed on work items of{' '}
+            <select
+              value={config.SameType.toString()}
+              onChange={(e) => {
+                this.setState({
+                  SameType: /true/i.test(e.target.value),
+                });
+              }}
+            >
+              <option value="true">the same type</option>
+              <option value="false">all types</option>
+            </select>{' '}
+            and on the following fields :
             <ul className="hidebullets">
               <li>
                 <input
