@@ -15,6 +15,8 @@ import {
 
 interface IBlockDuplicatesAdminState {
   SimilarityIndex: string;
+  IncludeTitle: boolean;
+  IncludeDesciption: boolean;
 }
 
 export default class BlockDuplicatesAdmin extends React.Component<
@@ -28,6 +30,8 @@ export default class BlockDuplicatesAdmin extends React.Component<
 
     this.state = {
       SimilarityIndex: '',
+      IncludeTitle: true,
+      IncludeDesciption: true,
     };
 
     this.onSaveClick = this.onSaveClick.bind(this);
@@ -65,13 +69,45 @@ export default class BlockDuplicatesAdmin extends React.Component<
         return prevState;
       });
     }
+
+    const includeTitle: boolean = await dataManager.getValue<boolean>(
+      'IncludeTitle',
+      {
+        scopeType: 'Default',
+      }
+    );
+
+    if (includeTitle) {
+      this.setState((prevState: IBlockDuplicatesAdminState) => {
+        prevState.IncludeTitle = includeTitle;
+        return prevState;
+      });
+    }
+
+    const includeDesciption: boolean = await dataManager.getValue<boolean>(
+      'IncludeDesciption',
+      {
+        scopeType: 'Default',
+      }
+    );
+
+    if (includeDesciption) {
+      this.setState((prevState: IBlockDuplicatesAdminState) => {
+        prevState.IncludeDesciption = includeDesciption;
+        return prevState;
+      });
+    }
   }
 
   public async onSaveClick(): Promise<void> {
     const config: IBlockDuplicatesAdminState = this.state;
 
     const similarityIndex = Number(config.SimilarityIndex);
+    const includeTitle = config.IncludeTitle;
+    const includeDesciption = config.IncludeDesciption;
     this._logger.debug(`Setting similarityIndex to ${similarityIndex}`);
+    this._logger.debug(`Setting includeTitle to ${includeTitle}`);
+    this._logger.debug(`Setting includeDesciption to ${includeDesciption}`);
 
     const dataService: IExtensionDataService =
       await SDK.getService<IExtensionDataService>(
@@ -86,6 +122,16 @@ export default class BlockDuplicatesAdmin extends React.Component<
     await dataManager.setValue<number>('SimilarityIndex', similarityIndex, {
       scopeType: 'Default',
     });
+    await dataManager.setValue<boolean>('IncludeTitle', includeTitle, {
+      scopeType: 'Default',
+    });
+    await dataManager.setValue<boolean>(
+      'IncludeDesciption',
+      includeDesciption,
+      {
+        scopeType: 'Default',
+      }
+    );
   }
 
   public render(): JSX.Element {
@@ -106,9 +152,31 @@ export default class BlockDuplicatesAdmin extends React.Component<
           <p>
             Checks are automatically performed on work items of the{' '}
             <strong>same type</strong> and on the following fields :
-            <ul>
-              <li>Title</li>
-              <li>Description</li>
+            <ul className="hidebullets">
+              <li>
+                <input
+                  type="checkbox"
+                  checked={config.IncludeTitle}
+                  onChange={(e) => {
+                    this.setState({
+                      IncludeTitle: e.target.checked,
+                    });
+                  }}
+                />
+                Title
+              </li>
+              <li>
+                <input
+                  type="checkbox"
+                  checked={config.IncludeDesciption}
+                  onChange={(e) => {
+                    this.setState({
+                      IncludeDesciption: e.target.checked,
+                    });
+                  }}
+                />
+                Description
+              </li>
             </ul>
           </p>
           <p>
@@ -131,7 +199,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
             </ul>
           </p>
           <p>
-            Current Similarity Index threshold is:
+            Current Similarity Index threshold is:{' '}
             <input
               type="text"
               onChange={(e) => {
@@ -143,10 +211,10 @@ export default class BlockDuplicatesAdmin extends React.Component<
             />
           </p>
           <p>
-            This extension can be leveraged in combination with the
+            This extension can be leveraged in combination with the{' '}
             <a href="https://marketplace.visualstudio.com/items?itemName=tschmiedlechner.find-similar-workitems">
               Find similar workitems
-            </a>
+            </a>{' '}
             extension to establish which work items are similar to the current
             item.
           </p>

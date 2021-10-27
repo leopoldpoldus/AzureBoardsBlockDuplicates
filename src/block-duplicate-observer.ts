@@ -121,6 +121,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
     )) as string;
 
     const similarityIndex: number = await this.getSimilarityIndex();
+    const includeTitle: boolean = await this.getIncludeTitle();
+    const includeDesciption: boolean = await this.getIncludeDesciption();
 
     if (id) {
       this._logger.debug(`System.Id is '${id}'.`);
@@ -133,6 +135,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._logger.debug(`System.Description is '${description}'.`);
     this._logger.debug(`System.WorkItemType is '${type}'.`);
     this._logger.debug(`similarityIndex is '${similarityIndex}'.`);
+    this._logger.debug(`includeTitle is '${includeTitle}'`);
+    this._logger.debug(`includeDesciption is '${includeDesciption}'`);
 
     const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = '${type}' AND [State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
@@ -167,6 +171,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
             this.normalizeString(title),
             this.normalizeString(description),
             similarityIndex,
+            includeTitle,
+            includeDesciption,
             chunk_items
           )
         );
@@ -193,12 +199,28 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
     // did we find any duplicates?
     if (duplicate) {
-      this._logger.info(
-        'A duplicate work item of the same type exists with similar title and description.'
-      );
-      this._workItemFormService.setError(
-        'A duplicate work item of the same type exists with similar title and description.'
-      );
+      if (includeTitle && includeDesciption) {
+        this._logger.info(
+          'A duplicate work item of the same type exists with similar title and description.'
+        );
+        this._workItemFormService.setError(
+          'A duplicate work item of the same type exists with similar title and description.'
+        );
+      } else if (includeTitle) {
+        this._logger.info(
+          'A duplicate work item of the same type exists with similar title.'
+        );
+        this._workItemFormService.setError(
+          'A duplicate work item of the same type exists with similar title.'
+        );
+      } else {
+        this._logger.info(
+          'A duplicate work item of the same type exists with similar description.'
+        );
+        this._workItemFormService.setError(
+          'A duplicate work item of the same type exists with similar description.'
+        );
+      }
     } else {
       this._logger.info('Not a Duplicate Work item.');
       this._workItemFormService.clearError();
@@ -246,6 +268,44 @@ class duplicateObserver implements IWorkItemNotificationListener {
     return similarityIndex;
   }
 
+  // Get stored index or return default
+  private async getIncludeTitle(): Promise<boolean> {
+    const dataManager: IExtensionDataManager =
+      await this._dataService.getExtensionDataManager(
+        SDK.getExtensionContext().id,
+        await SDK.getAccessToken()
+      );
+
+    // Get current value for setting
+    const includeTitle: boolean = await dataManager.getValue<boolean>(
+      'IncludeTitle',
+      {
+        scopeType: 'Default',
+      }
+    );
+
+    return includeTitle;
+  }
+
+  // Get stored index or return default
+  private async getIncludeDesciption(): Promise<boolean> {
+    const dataManager: IExtensionDataManager =
+      await this._dataService.getExtensionDataManager(
+        SDK.getExtensionContext().id,
+        await SDK.getAccessToken()
+      );
+
+    // Get current value for setting
+    const includeDesciption: boolean = await dataManager.getValue<boolean>(
+      'IncludeDesciption',
+      {
+        scopeType: 'Default',
+      }
+    );
+
+    return includeDesciption;
+  }
+
   // perform similarity logic on a batch of WI's
   private async validateWorkItemChunk(
     hostBaseUrl: string,
@@ -254,6 +314,8 @@ class duplicateObserver implements IWorkItemNotificationListener {
     currentWorkItemTitle: string,
     currentWorkItemDescription: string,
     similarityIndex: number,
+    includeTitle: boolean,
+    includeDesciption: boolean,
     workItemsChunk: Array<WorkItemReference>
   ): Promise<boolean> {
     // Prepare our request body for this batch, only request title and description
@@ -312,7 +374,16 @@ class duplicateObserver implements IWorkItemNotificationListener {
                 this._logger.debug('description_match', description_match);
 
                 if (title_match + description_match > 0) {
-                  const match: number = (title_match + description_match) / 2;
+                  let match = 0;
+                  // Let only include the results for relevant fields
+                  if (includeTitle && includeDesciption) {
+                    match = (title_match + description_match) / 2;
+                  } else if (includeTitle) {
+                    match = title_match;
+                  } else {
+                    match = description_match;
+                  }
+
                   this._logger.debug('match', match);
 
                   if (match >= similarityIndex) {
