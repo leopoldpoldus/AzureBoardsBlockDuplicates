@@ -141,7 +141,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
     this._logger.debug(`sameType is '${sameType}'`);
 
     const wiqlQuery = `SELECT [System.Id] FROM WorkItems WHERE ${
-      sameType ? `[System.WorkItemType] = '${type} AND ` : ''
+      sameType ? `[System.WorkItemType] = '${type}' AND ` : ''
     }[State] <> 'Closed' ORDER BY [System.CreatedDate] DESC`;
     this._logger.debug(`WIQL Query is '${wiqlQuery}'.`);
 
