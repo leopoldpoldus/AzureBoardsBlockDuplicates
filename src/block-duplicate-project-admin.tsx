@@ -79,7 +79,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
       }
     );
 
-    if (includeTitle) {
+    if (includeTitle != null) {
       this.setState((prevState: IBlockDuplicatesAdminState) => {
         prevState.IncludeTitle = includeTitle;
         return prevState;
@@ -93,7 +93,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
       }
     );
 
-    if (includeDesciption) {
+    if (includeDesciption != null) {
       this.setState((prevState: IBlockDuplicatesAdminState) => {
         prevState.IncludeDesciption = includeDesciption;
         return prevState;
@@ -104,7 +104,7 @@ export default class BlockDuplicatesAdmin extends React.Component<
       scopeType: 'Default',
     });
 
-    if (sameType) {
+    if (sameType != null) {
       this.setState((prevState: IBlockDuplicatesAdminState) => {
         prevState.SameType = sameType;
         return prevState;
