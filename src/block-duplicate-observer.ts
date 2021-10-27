@@ -277,12 +277,18 @@ class duplicateObserver implements IWorkItemNotificationListener {
       );
 
     // Get current value for setting
-    const includeTitle: boolean = await dataManager.getValue<boolean>(
+    let includeTitle: boolean = await dataManager.getValue<boolean>(
       'IncludeTitle',
       {
         scopeType: 'Default',
       }
     );
+
+    if (includeTitle == null) {
+      includeTitle = await dataManager.setValue<boolean>('IncludeTitle', true, {
+        scopeType: 'Default',
+      });
+    }
 
     return includeTitle;
   }
@@ -296,12 +302,22 @@ class duplicateObserver implements IWorkItemNotificationListener {
       );
 
     // Get current value for setting
-    const includeDesciption: boolean = await dataManager.getValue<boolean>(
+    let includeDesciption: boolean = await dataManager.getValue<boolean>(
       'IncludeDesciption',
       {
         scopeType: 'Default',
       }
     );
+
+    if (includeDesciption == null) {
+      includeDesciption = await dataManager.setValue<boolean>(
+        'IncludeDesciption',
+        true,
+        {
+          scopeType: 'Default',
+        }
+      );
+    }
 
     return includeDesciption;
   }
