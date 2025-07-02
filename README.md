@@ -1,5 +1,8 @@
 # AzureBoardsBlockDuplicates
 Azure Boards Extension which blocks duplicate work item creation
+The extension now calculates similarity using semantic embeddings generated in
+the browser via transformers.js. Cosine similarity on these embeddings replaces
+the previously used Dice coefficient approach.
 
 # Requirements
 - VSCode https://code.visualstudio.com/
