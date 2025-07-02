@@ -19,13 +19,13 @@ import {
   IWorkItemLoadedArgs,
   IWorkItemChangedArgs,
 } from 'azure-devops-extension-api/WorkItemTracking';
-import dice from 'fast-dice-coefficient';
 import striptags from 'striptags';
 import originalFetch from 'isomorphic-fetch';
 import fetchBuilder from 'fetch-retry';
+import { pipeline } from '@xenova/transformers';
 import Logger, { LogLevel } from './logger';
 
-class duplicateObserver implements IWorkItemNotificationListener {
+export class DuplicateObserver implements IWorkItemNotificationListener {
   _workItemFormService: IWorkItemFormService;
   _locationService: ILocationService;
   _projectService: IProjectPageService;
@@ -243,6 +243,46 @@ class duplicateObserver implements IWorkItemNotificationListener {
     else return '';
   }
 
+  // Embedding model loaded from transformers.js
+  private embedderPromise?: Promise<any>;
+  private embedder?: any;
+
+  private async getEmbedder(): Promise<any> {
+    if (!this.embedderPromise) {
+      this.embedderPromise = pipeline(
+        'feature-extraction',
+        'sentence-transformers/all-MiniLM-L6-v2'
+      );
+    }
+    this.embedder = await this.embedderPromise;
+    return this.embedder;
+  }
+
+  // Generate embedding vector using transformers.js
+  private async getEmbedding(text: string): Promise<number[]> {
+    const embedder = await this.getEmbedder();
+    const result = (await embedder(text)) as any;
+    const array = Array.isArray(result) ? result : result.data;
+    return Array.from(array[0] ?? array);
+  }
+
+  // Cosine similarity between two number vectors
+  private cosineSimilarity(a: number[], b: number[]): number {
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    const len = Math.min(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    if (normA === 0 || normB === 0) {
+      return 0;
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  }
+
   // Get stored index or return default
   private async getSimilarityIndex(): Promise<number> {
     const dataManager: IExtensionDataManager =
@@ -401,16 +441,29 @@ class duplicateObserver implements IWorkItemNotificationListener {
 
               this._logger.debug('filtered_workitems', filtered_workitems);
 
+              const currentTitleVector = await this.getEmbedding(
+                currentWorkItemTitle
+              );
+              const currentDescriptionVector = await this.getEmbedding(
+                currentWorkItemDescription
+              );
+
               // first check for match title is fastest as shortest text
 
-              filtered_workitems.every((workitem: any) => {
-                const title_match: number = dice(
-                  currentWorkItemTitle,
+              for (const workitem of filtered_workitems) {
+                const titleVector = await this.getEmbedding(
                   this.normalizeString(workitem.fields['System.Title'])
                 );
-                const description_match: number = dice(
-                  currentWorkItemDescription,
+                const descriptionVector = await this.getEmbedding(
                   this.normalizeString(workitem.fields['System.Description'])
+                );
+                const title_match: number = this.cosineSimilarity(
+                  currentTitleVector,
+                  titleVector
+                );
+                const description_match: number = this.cosineSimilarity(
+                  currentDescriptionVector,
+                  descriptionVector
                 );
 
                 this._logger.debug('title_match', title_match);
@@ -434,11 +487,10 @@ class duplicateObserver implements IWorkItemNotificationListener {
                       `Matched work item (SimilarityIndex=${match}) with id ${workitem.id}.`
                     );
                     duplicate = true;
-                    return false;
+                    break;
                   }
                 }
-                return true;
-              });
+              }
             } else {
               this._logger.info('Failed to retrieve work item chunk.');
               this._logger.debug('response', response);
@@ -455,7 +507,7 @@ class duplicateObserver implements IWorkItemNotificationListener {
       } catch (error) {
         // unhandled error
         reject(false);
-        this._logger.error(error);
+        this._logger.error(String(error));
       }
     });
   }
@@ -581,7 +633,7 @@ export async function main(): Promise<void> {
       );
 
     // Get the observer
-    return new duplicateObserver(
+    return new DuplicateObserver(
       workItemFormService,
       locationService,
       projectService,
@@ -590,7 +642,9 @@ export async function main(): Promise<void> {
   });
 }
 
-// execute our entrypoint
-main().catch((error) => {
-  console.error(error);
-});
+// execute our entrypoint when not running in tests
+if (process.env.NODE_ENV !== 'test') {
+  main().catch((error) => {
+    console.error(error);
+  });
+}
